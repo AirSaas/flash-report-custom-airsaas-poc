@@ -118,6 +118,78 @@ Add the projects you want to export:
 
 Note: SmartView project lists are not available via API. Project IDs must be added manually from the AirSaas UI.
 
+## Quick Start
+
+After installation, follow these steps to generate your first report:
+
+### Step 1: Get Project IDs from AirSaas
+
+Since SmartView project lists are not available via API, you need to manually collect project IDs:
+
+1. Go to your SmartView in AirSaas UI
+2. Open each project you want to include
+3. Copy the UUID from the URL: `https://app.airsaas.io/.../project/{UUID}`
+4. Add them to `config/projects.json`:
+
+```json
+{
+  "workspace": "aqme-corp-",
+  "projects": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "short_id": "PRJ-001",
+      "name": "My First Project"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "short_id": "PRJ-002",
+      "name": "My Second Project"
+    }
+  ]
+}
+```
+
+### Step 2: Fetch Data
+
+```bash
+# With Claude Code
+/fetch
+
+# Or verify API connection first
+curl -H "Authorization: Api-Key YOUR_KEY" https://api.airsaas.io/v1/projects/
+```
+
+### Step 3: Generate PPT
+
+```bash
+# With Claude Code (recommended)
+/ppt-skill
+
+# Or manually with Python
+python3 scripts/generate_ppt.py
+```
+
+### Step 4: Find Your Output
+
+Generated presentations are saved in `outputs/` with date prefix:
+- `outputs/2026-01-12_portfolio_skill.pptx` (python-pptx)
+- `outputs/2026-01-12_portfolio_gamma.pptx` (Gamma API, if configured)
+
+### Complete Workflow Example
+
+```bash
+# 1. Configure projects (edit config/projects.json)
+
+# 2. Fetch fresh data from AirSaas
+/fetch
+
+# 3. Generate PPT using template
+/ppt-skill
+
+# Or do everything at once
+/ppt-all
+```
+
 ## Usage
 
 ### With Claude Code
