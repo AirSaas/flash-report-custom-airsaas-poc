@@ -5,8 +5,8 @@
  * Use as reference for API structure or standalone in Google Sheets.
  *
  * Features:
- * - Fetches: project info, milestones, decisions, attention points
- * - Fetches: workspace references (moods, statuses, risks)
+ * - Fetches: project, members, efforts, milestones, decisions, attention points, budget
+ * - Fetches: all workspace references (moods, statuses, risks, teams, users)
  * - Resolves codes to human-readable labels
  * - Exports to Google Sheets with formatted tabs
  *
@@ -55,13 +55,17 @@ function fetchReferenceData() {
   const referenceData = {
     moods: fetchAllPages('/projects_moods/', apiKey),
     statuses: fetchAllPages('/projects_statuses/', apiKey),
-    risks: fetchAllPages('/projects_risks/', apiKey)
+    risks: fetchAllPages('/projects_risks/', apiKey),
+    teams: fetchAllPages('/teams/', apiKey),
+    users: fetchAllPages('/users/', apiKey)
   };
 
   Logger.log('Reference data loaded');
   Logger.log('Moods: ' + referenceData.moods.length);
   Logger.log('Statuses: ' + referenceData.statuses.length);
   Logger.log('Risks: ' + referenceData.risks.length);
+  Logger.log('Teams: ' + referenceData.teams.length);
+  Logger.log('Users: ' + referenceData.users.length);
 
   return referenceData;
 }
@@ -73,6 +77,8 @@ function fetchReferenceData() {
  * - GET /projects/{id}/?expand=owner,program,goals,teams,requesting_team
  * - GET /projects/{id}/members/ - Project team members with roles
  * - GET /projects/{id}/efforts/ - Per-team effort breakdown
+ * - GET /projects/{id}/budget_lines/ - Budget line items
+ * - GET /projects/{id}/budget_values/ - Budget values per line
  * - GET /milestones/?project={id}&expand=owner,team,project
  * - GET /decisions/?project={id}&expand=owner,decision_maker,project
  * - GET /attention_points/?project={id}&expand=owner,project
@@ -96,6 +102,17 @@ function fetchProjectData(projectId, apiKey, referenceData) {
   // Project sub-resources
   data.members = fetchAllPages(`/projects/${projectId}/members/`, apiKey);
   data.efforts = fetchAllPages(`/projects/${projectId}/efforts/`, apiKey);
+
+  // Budget data
+  try {
+    data.budgetLines = fetchAllPages(`/projects/${projectId}/budget_lines/`, apiKey);
+    data.budgetValues = fetchAllPages(`/projects/${projectId}/budget_values/`, apiKey);
+  } catch (e) {
+    // Budget endpoints may not be available for all projects
+    Logger.log('Budget data not available: ' + e.message);
+    data.budgetLines = [];
+    data.budgetValues = [];
+  }
 
   // Related data - using documented endpoints with project filter
   data.milestones = fetchAllPages(`/milestones/?project=${projectId}&expand=owner,team,project`, apiKey);
@@ -249,8 +266,19 @@ function exportToSheet(projectData) {
     ['Program', projectData.project.program?.name || ''],
     ['Start Date', projectData.project.start_date],
     ['End Date', projectData.project.end_date],
+    ['Progress', projectData.project.progress !== null ? projectData.project.progress + '%' : 'N/A'],
+    ['Milestone Progress', projectData.project.milestone_progress !== null ? projectData.project.milestone_progress + '%' : 'N/A'],
     ['Completion %', projectData.completionPercent !== null ? projectData.completionPercent + '%' : 'N/A'],
-    ['Description', projectData.project.description]
+    ['Budget CAPEX (BAC)', projectData.project.budget_capex_initial],
+    ['Budget CAPEX (Actual)', projectData.project.budget_capex_used],
+    ['Budget CAPEX (EAC)', projectData.project.budget_capex_landing],
+    ['Budget OPEX (BAC)', projectData.project.budget_opex_initial],
+    ['Budget OPEX (Actual)', projectData.project.budget_opex_used],
+    ['Budget OPEX (EAC)', projectData.project.budget_opex_landing],
+    ['Effort (Planned)', projectData.project.effort],
+    ['Effort (Used)', projectData.project.effort_used],
+    ['Gain', projectData.project.gain],
+    ['Description', projectData.project.description_text || projectData.project.description]
   ];
 
   projectFields.forEach(([field, value]) => {
@@ -324,6 +352,80 @@ function exportToSheet(projectData) {
         ap.severity || '',
         ap.status || '',
         ap.owner?.full_name || ''
+      ]]);
+      row++;
+    });
+    row++;
+  }
+
+  // Team Members
+  if (projectData.members && projectData.members.length > 0) {
+    sheet.getRange(row, 1).setValue('TEAM MEMBERS').setFontWeight('bold');
+    row++;
+    sheet.getRange(row, 1, 1, 3).setValues([['Name', 'Role', 'Position']]);
+    row++;
+
+    projectData.members.forEach(m => {
+      sheet.getRange(row, 1, 1, 3).setValues([[
+        m.user?.full_name || m.user?.name || '',
+        m.role?.name || '',
+        m.user?.current_position || ''
+      ]]);
+      row++;
+    });
+    row++;
+  }
+
+  // Team Efforts
+  if (projectData.efforts && projectData.efforts.length > 0) {
+    sheet.getRange(row, 1).setValue('TEAM EFFORTS').setFontWeight('bold');
+    row++;
+    sheet.getRange(row, 1, 1, 3).setValues([['Team', 'Planned', 'Used']]);
+    row++;
+
+    projectData.efforts.forEach(e => {
+      sheet.getRange(row, 1, 1, 3).setValues([[
+        e.team?.name || '',
+        e.effort || 0,
+        e.effort_used || 0
+      ]]);
+      row++;
+    });
+    row++;
+  }
+
+  // Budget Lines
+  if (projectData.budgetLines && projectData.budgetLines.length > 0) {
+    sheet.getRange(row, 1).setValue('BUDGET LINES').setFontWeight('bold');
+    row++;
+    sheet.getRange(row, 1, 1, 4).setValues([['Name', 'Type', 'Amount', 'Currency']]);
+    row++;
+
+    projectData.budgetLines.forEach(bl => {
+      sheet.getRange(row, 1, 1, 4).setValues([[
+        bl.name || '',
+        bl.type || '',
+        bl.amount || 0,
+        bl.currency || ''
+      ]]);
+      row++;
+    });
+    row++;
+  }
+
+  // Budget Values
+  if (projectData.budgetValues && projectData.budgetValues.length > 0) {
+    sheet.getRange(row, 1).setValue('BUDGET VALUES').setFontWeight('bold');
+    row++;
+    sheet.getRange(row, 1, 1, 4).setValues([['Line', 'Period', 'Value', 'Type']]);
+    row++;
+
+    projectData.budgetValues.forEach(bv => {
+      sheet.getRange(row, 1, 1, 4).setValues([[
+        bv.budget_line?.name || bv.budget_line || '',
+        bv.period || '',
+        bv.value || 0,
+        bv.value_type || ''
       ]]);
       row++;
     });
