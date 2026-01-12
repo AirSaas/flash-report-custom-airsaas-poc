@@ -2,6 +2,60 @@
 
 Automates the generation of PowerPoint portfolio reports from AirSaas project data. Fetches project information via the AirSaas API, maps data fields to PPT template placeholders, and generates presentations using python-pptx or Gamma API.
 
+## How It Works
+
+```mermaid
+flowchart LR
+    subgraph Input
+        A[config/projects.json] --> B[Project IDs]
+        C[templates/*.pptx] --> D[PPT Template]
+    end
+
+    subgraph Fetch
+        B --> E[AirSaas API]
+        E --> F[/projects/]
+        E --> G[/milestones/]
+        E --> H[/decisions/]
+        E --> I[/attention_points/]
+        F & G & H & I --> J[data/projects.json]
+    end
+
+    subgraph Generate
+        J --> K{Generator}
+        D --> K
+        K -->|python-pptx| L[Programmatic]
+        K -->|Gamma API| M[AI-Powered]
+        L & M --> N[outputs/*.pptx]
+    end
+
+    style E fill:#4A90D9
+    style K fill:#F5A623
+    style N fill:#7ED321
+```
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Claude Code
+    participant A as AirSaas API
+    participant P as PPT Generator
+
+    U->>C: /fetch
+    C->>A: GET /projects/{id}
+    A-->>C: Project data
+    C->>A: GET /milestones/?project={id}
+    A-->>C: Milestones
+    C->>A: GET /decisions/?project={id}
+    A-->>C: Decisions
+    C-->>U: Data saved to data/
+
+    U->>C: /ppt-skill
+    C->>P: Load template + data
+    P->>P: Map fields to shapes
+    P-->>C: Generated PPTX
+    C-->>U: Output saved to outputs/
+```
+
 ## Features
 
 - Fetch project data from AirSaas API (projects, milestones, decisions, attention points)
@@ -127,12 +181,18 @@ flash-report-custom-airsaas-poc/
 |----------|-------------|
 | `/projects/` | List all projects |
 | `/projects/{id}/` | Single project details |
+| `/projects/{id}/members/` | Project team members with roles |
+| `/projects/{id}/efforts/` | Per-team effort breakdown |
 | `/milestones/?project={id}` | Project milestones |
 | `/decisions/?project={id}` | Project decisions |
 | `/attention_points/?project={id}` | Project attention points |
 | `/projects_moods/` | Mood code definitions |
 | `/projects_statuses/` | Status code definitions |
 | `/projects_risks/` | Risk code definitions |
+| `/teams/` | All workspace teams |
+| `/users/` | Workspace members |
+| `/programs/` | Programs list |
+| `/project_custom_attributes/` | Custom attribute definitions |
 
 ### Expandable Fields
 
@@ -152,17 +212,23 @@ The script maps AirSaas data to template shapes by name. Key mappings:
 | Mood | `resolved.mood` |
 | Owner | `project.owner.name` |
 | Start/End Date | `project.start_date`, `project.end_date` |
+| Budget BAC | `project.budget_capex_initial` |
+| Budget Actual | `project.budget_capex_used` |
+| Budget EAC | `project.budget_capex_landing` |
+| Effort | `project.effort`, `project.effort_used` |
+| Team Efforts | `/projects/{id}/efforts/` |
+| Progress | `project.progress` |
 | Milestones | `milestones[]` |
 | Decisions | `decisions[]` |
 | Attention Points | `attention_points[]` |
+| Members | `/projects/{id}/members/` |
 
 ### Known Missing Fields
 
 These fields are not available in the public API:
-- Budget (BAC, Actual, EAC)
-- Team efforts
 - Deployment area
-- End user counts
+- End user counts (actual/target)
+- Mood comment (free text)
 
 ## License
 

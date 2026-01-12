@@ -71,6 +71,8 @@ function fetchReferenceData() {
  *
  * Documented endpoints used:
  * - GET /projects/{id}/?expand=owner,program,goals,teams,requesting_team
+ * - GET /projects/{id}/members/ - Project team members with roles
+ * - GET /projects/{id}/efforts/ - Per-team effort breakdown
  * - GET /milestones/?project={id}&expand=owner,team,project
  * - GET /decisions/?project={id}&expand=owner,decision_maker,project
  * - GET /attention_points/?project={id}&expand=owner,project
@@ -90,6 +92,10 @@ function fetchProjectData(projectId, apiKey, referenceData) {
     `/projects/${projectId}/?expand=owner,program,goals,teams,requesting_team`,
     apiKey
   );
+
+  // Project sub-resources
+  data.members = fetchAllPages(`/projects/${projectId}/members/`, apiKey);
+  data.efforts = fetchAllPages(`/projects/${projectId}/efforts/`, apiKey);
 
   // Related data - using documented endpoints with project filter
   data.milestones = fetchAllPages(`/milestones/?project=${projectId}&expand=owner,team,project`, apiKey);

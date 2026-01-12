@@ -157,6 +157,7 @@ HTTPS is required for all requests.
 
 ### Available Endpoints
 
+#### Core Endpoints
 | Endpoint | Method | Description | Expandable Fields |
 |----------|--------|-------------|-------------------|
 | `/projects/` | GET | List all projects | owner, program, goals, teams, requesting_team |
@@ -164,10 +165,28 @@ HTTPS is required for all requests.
 | `/milestones/` | GET | All milestones | owner, team, project |
 | `/decisions/` | GET | All decisions | owner, decision_maker, project, workspace_program |
 | `/attention_points/` | GET | All attention points | owner, project, workspace_program |
-| `/projects_moods/` | GET | Mood/weather codes | - |
-| `/projects_statuses/` | GET | Status codes | - |
-| `/projects_risks/` | GET | Risk codes | - |
-| `/profile/` | GET | Current user profile | - |
+
+#### Reference Data
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/projects_moods/` | GET | Mood/weather codes |
+| `/projects_statuses/` | GET | Status codes |
+| `/projects_risks/` | GET | Risk codes |
+
+#### Project Sub-resources
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/projects/{id}/members/` | GET | Project team members with roles |
+| `/projects/{id}/efforts/` | GET | Per-team effort breakdown |
+
+#### Workspace Resources
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/teams/` | GET | All workspace teams |
+| `/users/` | GET | Workspace members |
+| `/programs/` | GET | Programs list |
+| `/project_custom_attributes/` | GET | Custom attribute definitions |
+| `/profile/` | GET | Current user profile |
 
 ### Expandable Properties
 
@@ -223,16 +242,6 @@ On 429 error:
 - Datetime: `2023-07-12T18:12:45.123Z`
 - Date only: `2023-07-12`
 
-### Endpoints NOT in Public API Documentation
-
-These endpoints may exist but are **not documented**:
-- `/projects/{id}/members/`
-- `/projects/{id}/efforts/`
-- `/projects/{id}/budget_lines/`
-- `/projects/{id}/budget_values/`
-- `/teams/`
-- `/users/`
-
 ---
 
 ## Data Mapping: AirSaas → Template
@@ -255,16 +264,22 @@ These endpoints may exist but are **not documented**:
 | Milestones | `milestones[]` | OK |
 | Decisions | `decisions[]` | OK |
 | Attention Points | `attention_points[]` | OK |
+| Budget BAC | `project.budget_capex_initial` | OK |
+| Budget Actual | `project.budget_capex_used` | OK |
+| Budget EAC | `project.budget_capex_landing` | OK |
+| Effort Planned | `project.effort` | OK |
+| Effort Used | `project.effort_used` | OK |
+| Team Efforts | `/projects/{id}/efforts/` | OK |
+| Members | `/projects/{id}/members/` | OK |
+| Progress | `project.progress` | OK |
+| Milestone Progress | `project.milestone_progress` | OK |
+| Gain | `project.gain` | OK |
 
 ### Missing Fields (not in API)
 
 | Template Field | Reason | Workaround |
 |----------------|--------|------------|
-| Budget BAC | Budget endpoints not documented | Show "N/A" |
-| Budget Actual | Budget endpoints not documented | Show "N/A" |
-| Budget EAC | Budget endpoints not documented | Show "N/A" |
 | Mood comment | API returns code only | Use mood label |
-| Team efforts | Efforts endpoint not documented | Leave empty |
 | Deployment area | Field not in API | Leave empty |
 | End users (actual/target) | Field not in API | Leave empty |
 

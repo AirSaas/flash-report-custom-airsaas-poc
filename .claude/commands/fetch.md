@@ -17,9 +17,11 @@ Fetch all project data from AirSaas API and save to cache.
 3. **For Each Project in projects.json**
    Fetch all related data:
    - `GET /projects/{id}/?expand=owner,program,goals,teams,requesting_team` - Main project info
-   - `GET /milestones/?expand=project&project={id}` - Milestones (filter by project)
-   - `GET /decisions/?expand=owner,decision_maker,project&project={id}` - Decisions
-   - `GET /attention_points/?expand=owner,project&project={id}` - Attention points
+   - `GET /projects/{id}/members/` - Project team members with roles
+   - `GET /projects/{id}/efforts/` - Per-team effort breakdown
+   - `GET /milestones/?project={id}&expand=owner,team,project` - Milestones (filter by project)
+   - `GET /decisions/?project={id}&expand=owner,decision_maker,project` - Decisions
+   - `GET /attention_points/?project={id}&expand=owner,project` - Attention points
 
 4. **Handle Pagination**
    - Check for `next` field in responses
@@ -55,6 +57,8 @@ Header: `Authorization: Api-Key {AIRSAAS_API_KEY}`
     {
       "id": "uuid",
       "project": {...},
+      "members": [...],
+      "efforts": [...],
       "milestones": [...],
       "decisions": [...],
       "attention_points": [...]

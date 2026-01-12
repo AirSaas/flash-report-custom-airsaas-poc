@@ -62,15 +62,49 @@
         "source": "project.program.name",
         "status": "ok"
       },
-      "budget": {
-        "source": null,
-        "status": "missing",
-        "notes": "Budget endpoints not documented in public API"
+      "budget_bac": {
+        "source": "project.budget_capex_initial",
+        "status": "ok"
       },
-      "eac_budget": {
-        "source": null,
-        "status": "missing",
-        "notes": "EAC budget not available in API"
+      "budget_actual": {
+        "source": "project.budget_capex_used",
+        "status": "ok"
+      },
+      "budget_eac": {
+        "source": "project.budget_capex_landing",
+        "status": "ok"
+      },
+      "budget_opex_initial": {
+        "source": "project.budget_opex_initial",
+        "status": "ok"
+      },
+      "budget_opex_used": {
+        "source": "project.budget_opex_used",
+        "status": "ok"
+      },
+      "budget_opex_landing": {
+        "source": "project.budget_opex_landing",
+        "status": "ok"
+      },
+      "effort": {
+        "source": "project.effort",
+        "status": "ok"
+      },
+      "effort_used": {
+        "source": "project.effort_used",
+        "status": "ok"
+      },
+      "progress": {
+        "source": "project.progress",
+        "status": "ok"
+      },
+      "milestone_progress": {
+        "source": "project.milestone_progress",
+        "status": "ok"
+      },
+      "gain": {
+        "source": "project.gain",
+        "status": "ok"
       },
       "achievements": {
         "source": "project.goals",
@@ -108,9 +142,14 @@
         "status": "ok"
       },
       "team_efforts": {
-        "source": null,
-        "status": "missing",
-        "notes": "Efforts endpoint not documented in public API"
+        "source": "GET /projects/{id}/efforts/",
+        "status": "ok",
+        "notes": "Returns per-team effort breakdown"
+      },
+      "members": {
+        "source": "GET /projects/{id}/members/",
+        "status": "ok",
+        "notes": "Returns project team members with roles"
       },
       "decisions": {
         "source": "decisions",
