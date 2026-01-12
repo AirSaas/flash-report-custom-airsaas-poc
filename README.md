@@ -302,6 +302,13 @@ These fields are not available in the public API:
 - End user counts (actual/target)
 - Mood comment (free text)
 
+### Gamma API (Optional)
+
+- **Documentation:** https://developers.gamma.app/docs/getting-started
+- **Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
+- **Authentication:** `Authorization: Bearer {GAMMA_API_KEY}`
+- **Access:** Pro, Ultra, Teams, or Business plan required
+
 ## License
 
 Internal use only.

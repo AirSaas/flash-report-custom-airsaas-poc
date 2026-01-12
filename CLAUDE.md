@@ -1,5 +1,28 @@
 # Flash Report Custom AirSaas - Claude Code Instructions
 
+## Documentation Sync Rule
+
+**IMPORTANT:** When updating any documentation or API-related information, keep ALL documentation files synchronized:
+
+| File | Content |
+|------|---------|
+| `CLAUDE.md` | Claude Code instructions, API reference, mapping |
+| `README.md` | User documentation, Quick Start, endpoints |
+| `scripts/airsaas_fetcher.gs` | Google Apps Script with API endpoints |
+| `config/mapping.json` | Field mappings with sources and status |
+| `.claude/commands/fetch.md` | Fetch command with endpoints list |
+| `.claude/commands/ppt-gamma.md` | Gamma API reference |
+| `tracking/MISSING_FIELDS.md` | Available vs missing fields |
+
+When making changes to:
+- **API endpoints** → Update: CLAUDE.md, README.md, airsaas_fetcher.gs, fetch.md
+- **Field availability** → Update: CLAUDE.md, README.md, mapping.json, MISSING_FIELDS.md, airsaas_fetcher.gs
+- **Gamma API** → Update: CLAUDE.md, README.md, ppt-gamma.md
+
+**ALWAYS keep `scripts/airsaas_fetcher.gs` updated** - it serves as the reference implementation for AirSaas API usage and must reflect all discovered endpoints and fields.
+
+---
+
 ## Project Overview
 
 This project automates the generation of PowerPoint portfolio reports from AirSaas project data. It fetches project information via the AirSaas API, maps data fields to PPT template placeholders, and generates presentations using either Gamma API or python-pptx.
@@ -311,45 +334,91 @@ On 429 error:
 
 ---
 
-## Gamma API Reference
+## Gamma API Reference (v1.0)
 
-**Base URL:** `https://public-api.gamma.app/v1.0`
+**Documentation:** https://developers.gamma.app/docs/getting-started
+
+**Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
 
 ### Authentication
 
 ```
-X-API-KEY: {GAMMA_API_KEY}
+Authorization: Bearer {GAMMA_API_KEY}
 ```
-
-### Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/generations` | POST | Create new presentation |
-| `/generations/{id}` | GET | Check status / get download URL |
 
 ### Creating a Presentation
 
 **Request:**
 ```json
-POST /generations
+POST https://public-api.gamma.app/v1.0/generations
 {
-  "input": "Markdown content with \\n---\\n as slide breaks",
-  "exportOptions": {
-    "pptx": true
+  "inputText": "Your markdown content here",
+  "textMode": "preserve",
+  "format": "presentation",
+  "numCards": 10,
+  "cardSplit": "inputTextBreaks",
+  "exportAs": "pptx",
+  "textOptions": {
+    "amount": "medium",
+    "language": "fr"
+  },
+  "cardOptions": {
+    "dimensions": "16x9"
+  },
+  "imageOptions": {
+    "source": "noImages"
   }
 }
 ```
 
-**Slide breaks:** Use `\n---\n` to separate slides in markdown.
+### Key Parameters
 
-### Polling for Completion
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `inputText` | Yes | Content to generate (max 100,000 tokens) |
+| `textMode` | Yes | `generate`, `condense`, or `preserve` |
+| `format` | No | `presentation`, `document`, `social`, `webpage` |
+| `numCards` | No | Number of slides (1-60 Pro, 1-75 Ultra) |
+| `cardSplit` | No | `auto` or `inputTextBreaks` (use `---` breaks) |
+| `exportAs` | No | `pdf` or `pptx` for download |
 
-```
-GET /generations/{id}
-```
+### Text Modes
 
-Poll every 5 seconds until `status: "completed"`, then get download URL from response.
+| Mode | Use Case |
+|------|----------|
+| `generate` | Brief input, let AI expand |
+| `condense` | Large input, summarize it |
+| `preserve` | Keep exact text as-is |
+
+### Additional Options
+
+| Option | Parameters |
+|--------|------------|
+| `textOptions` | `amount`, `tone`, `audience`, `language` |
+| `cardOptions` | `dimensions` (16x9, 4x3, fluid), `headerFooter` |
+| `imageOptions` | `source` (noImages, aiGenerated, unsplash...), `model`, `style` |
+| `sharingOptions` | `workspaceAccess`, `externalAccess`, `emailOptions` |
+
+### Other Gamma Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1.0/generations` | POST | Generate from text |
+| `/v1.0/generations/from-template` | POST | Generate from template (Beta) |
+| `/v1.0/themes` | GET | List available themes |
+| `/v1.0/folders` | GET | List folders |
+
+### Response
+
+Response includes `pptxUrl` when `exportAs: "pptx"`. Download immediately as URLs expire.
+
+### API Access
+
+- Available on Pro, Ultra, Teams, Business plans
+- Credit-based billing
+- v0.2 deprecated Jan 16, 2026
+
+**Full reference:** See `.claude/commands/ppt-gamma.md` for complete API documentation.
 
 ---
 
