@@ -1,0 +1,148 @@
+{
+  "_description": "Field mapping from AirSaas API to PPT template placeholders",
+  "_instructions": "Run /mapping command to populate this file through interactive conversation",
+  "_status_values": {
+    "ok": "Field successfully mapped to API data",
+    "missing": "Field not available in API",
+    "manual": "Field requires manual input",
+    "calculated": "Field derived from other data"
+  },
+  "slides": {
+    "summary": {
+      "title": {
+        "source": "static",
+        "value": "Portfolio Flash Report",
+        "status": "ok"
+      },
+      "date": {
+        "source": "generated",
+        "transform": "current_date",
+        "status": "ok"
+      },
+      "project_list": {
+        "source": "projects",
+        "fields": ["name", "mood", "status"],
+        "status": "ok"
+      }
+    },
+    "project_card": {
+      "name": {
+        "source": "project.name",
+        "status": "ok"
+      },
+      "short_id": {
+        "source": "project.short_id",
+        "status": "ok"
+      },
+      "status": {
+        "source": "project.status",
+        "transform": "resolve_status_label",
+        "status": "ok"
+      },
+      "mood": {
+        "source": "project.mood",
+        "transform": "resolve_mood_label",
+        "status": "ok"
+      },
+      "mood_comment": {
+        "source": null,
+        "status": "missing",
+        "notes": "API returns mood code only, no comment text"
+      },
+      "risk": {
+        "source": "project.risk",
+        "transform": "resolve_risk_label",
+        "status": "ok"
+      },
+      "owner": {
+        "source": "project.owner.full_name",
+        "status": "ok"
+      },
+      "program": {
+        "source": "project.program.name",
+        "status": "ok"
+      },
+      "budget": {
+        "source": null,
+        "status": "missing",
+        "notes": "Budget endpoints not documented in public API"
+      },
+      "eac_budget": {
+        "source": null,
+        "status": "missing",
+        "notes": "EAC budget not available in API"
+      },
+      "achievements": {
+        "source": "project.goals",
+        "transform": "format_goals",
+        "status": "ok"
+      },
+      "start_date": {
+        "source": "project.start_date",
+        "transform": "format_date",
+        "status": "ok"
+      },
+      "end_date": {
+        "source": "project.end_date",
+        "transform": "format_date",
+        "status": "ok"
+      }
+    },
+    "project_progress": {
+      "completion_percent": {
+        "source": "milestones",
+        "transform": "calculate_completion",
+        "status": "calculated",
+        "notes": "Calculated from completed vs total milestones"
+      },
+      "kpis": {
+        "source": "project.goals",
+        "transform": "extract_kpis",
+        "status": "ok"
+      }
+    },
+    "project_planning": {
+      "milestones": {
+        "source": "milestones",
+        "transform": "format_timeline",
+        "status": "ok"
+      },
+      "team_efforts": {
+        "source": null,
+        "status": "missing",
+        "notes": "Efforts endpoint not documented in public API"
+      },
+      "decisions": {
+        "source": "decisions",
+        "transform": "format_decisions",
+        "status": "ok"
+      },
+      "attention_points": {
+        "source": "attention_points",
+        "transform": "format_attention_points",
+        "status": "ok"
+      }
+    },
+    "data_notes": {
+      "unfilled_fields": {
+        "source": "generated",
+        "transform": "collect_unfilled",
+        "status": "ok"
+      }
+    }
+  },
+  "reference_data": {
+    "moods": {
+      "source": "GET /projects_moods/",
+      "cache": true
+    },
+    "statuses": {
+      "source": "GET /projects_statuses/",
+      "cache": true
+    },
+    "risks": {
+      "source": "GET /projects_risks/",
+      "cache": true
+    }
+  }
+}

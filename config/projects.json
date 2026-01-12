@@ -1,0 +1,10 @@
+{
+  "workspace": "aqme-corp-",
+  "smartview": {
+    "name": "Projets Vitaux CODIR",
+    "id": "f67bb94f-464e-44e1-88bc-101bccaed640",
+    "url": "https://app.airsaas.io/space/aqme-corp-/projects/portfolio/projets-vitaux-codir_f67bb94f-464e-44e1-88bc-101bccaed640"
+  },
+  "projects": [],
+  "_instructions": "Add project IDs manually. SmartView project lists are not available via API. Get project IDs from the AirSaas UI or by inspecting network requests."
+}
