@@ -4,72 +4,105 @@ Map AirSaas API fields to PPT template placeholders through interactive conversa
 
 **IMPORTANT:** This command MUST be interactive. DO NOT just display the current mapping status. You MUST follow each phase and ASK the user questions using the AskUserQuestion tool.
 
+## Quick Reference - Script Commands
+
+| Command | Purpose |
+|---------|---------|
+| `python3 scripts/generate_ppt.py --analyze` | Full template analysis with shape positions |
+| `python3 scripts/generate_ppt.py --analyze -v` | Verbose analysis (includes non-text shapes) |
+| `python3 scripts/generate_ppt.py --verify` | Verify template matches expected positions |
+| `python3 scripts/generate_ppt.py --export-mapping` | Export all shapes to JSON file |
+
+---
+
 ## Instructions
 
-### Phase 0: Template Verification (REQUIRED FIRST)
+### Phase 0: COMPREHENSIVE Template Analysis (REQUIRED FIRST)
 
-**CRITICAL:** Before any mapping, verify and sync template positions with `generate_ppt.py`.
+**CRITICAL:** Before ANY mapping, perform exhaustive template analysis.
 
-1. **Run template verification**:
+1. **Export template mapping to JSON** (creates reference file):
    ```bash
-   python3 scripts/generate_ppt.py --verify
+   python3 scripts/generate_ppt.py --export-mapping
    ```
+   This creates `config/template_shapes.json` with ALL shape details.
 
-2. **If verification fails or template changed**, run analysis:
+2. **Run full template analysis**:
    ```bash
    python3 scripts/generate_ppt.py --analyze
    ```
 
-3. **Update `EXPECTED_SHAPE_POSITIONS` in `generate_ppt.py`** if positions changed:
-   - Read the analysis output
-   - Update the constant with new positions
-   - This ensures `/ppt-skill` will place content correctly
+   **MUST CAPTURE from output:**
+   - Slide dimensions
+   - Total number of slides and layouts
+   - EVERY text shape with:
+     - Exact position (x, y) in inches
+     - Size (width x height)
+     - Shape name (e.g., `Google Shape;671;p1`)
+     - Current text content (or empty)
+   - All image shapes (icons, logos)
+   - Placeholder shapes that need content
 
-This step syncs the script with any template changes before mapping fields.
-
-### Phase 1: Template Analysis (REQUIRED)
-
-1. **Check for Template File**
-   - Look in `templates/` folder for PPT files
-   - If no template exists, ask user to provide one or describe desired structure
-
-2. **Analyze Template Structure with python-pptx**
-   Run Python code to extract ALL shapes from the template:
-   ```python
-   from pptx import Presentation
-   prs = Presentation('templates/YOUR_TEMPLATE.pptx')
-
-   print(f"Slide dimensions: {prs.slide_width.inches} x {prs.slide_height.inches} inches")
-   print(f"Number of slides: {len(prs.slides)}")
-   print(f"Number of layouts: {len(prs.slide_layouts)}")
-   print()
-
-   for slide_idx, slide in enumerate(prs.slides):
-       print(f"Slide {slide_idx}:")
-       for shape in slide.shapes:
-           x = round(shape.left.inches, 2)
-           y = round(shape.top.inches, 2)
-           w = round(shape.width.inches, 2)
-           h = round(shape.height.inches, 2)
-           shape_type = type(shape).__name__
-           print(f"  - {shape.name} ({shape_type})")
-           print(f"    Position: ({x}, {y}) Size: {w}x{h}")
-           if shape.has_text_frame:
-               text = shape.text[:50].replace('\n', ' | ')
-               print(f"    Text: '{text}...'")
+3. **Run verification against current mapping**:
+   ```bash
+   python3 scripts/generate_ppt.py --verify
    ```
 
-3. **Identify Visual Elements**
-   - Count images per slide
-   - Note shapes with borders/fills
-   - Identify section titles in background (visual elements, not text shapes)
+   **Check for:**
+   - ✓ Matched shapes - positions are correct
+   - ⚠️ Drifted shapes - positions have shifted
+   - ❌ Missing shapes - not found at expected position
+   - 🆕 New shapes - exist in template but not in mapping
 
-4. **Present Template Summary to User**
-   Show the user what placeholders were found in each slide.
+4. **Document ALL fields** - Create a comprehensive list:
+
+   ```
+   TEMPLATE FIELD INVENTORY:
+   ========================
+   Slide 0 (Project Review):
+     Position (0.4, 0.2):  TITLE - "Project review : {name}"
+     Position (8.9, 0.1):  DATE - "dd/mm/yy"
+     Position (0.4, 1.0):  MOOD_STATUS - Status and mood display
+     Position (0.35, 1.9): SCOPE_MILESTONES - Dates and milestone count
+     Position (0.4, 2.2):  INFO_AREA - (configured empty)
+     Position (0.4, 3.2):  ACHIEVEMENTS - Description text
+     Position (0.4, 4.3):  TRENDS - Progress percentages
+     Position (0.4, 4.5):  NEXT_STEPS - Pending milestones
+     Position (5.1, 1.0):  MADE - Completed milestones
+     Position (5.1, 2.5):  RISKS - Risk level display
+     Position (5.1, 4.4):  BUDGET - BAC/Actual/EAC values
+   ```
+
+5. **Present complete template summary to user** showing:
+   - Visual layout diagram (ASCII or description)
+   - All detected fields with their current purpose
+   - Any fields that appear unmapped or have placeholder text ("xxx")
+
+### Phase 1: Compare with Current Mapping (REQUIRED)
+
+1. **Read current mapping.json**:
+   ```bash
+   cat config/mapping.json
+   ```
+
+2. **Identify discrepancies**:
+   - Fields in template but NOT in mapping.json
+   - Fields in mapping.json but NOT in template (removed/moved)
+   - Position differences between mapping.json and actual template
+
+3. **Report to user**:
+   ```
+   MAPPING SYNC STATUS:
+   ====================
+   ✓ title: Mapped and position matches
+   ✓ date: Mapped and position matches
+   ⚠️ scope_milestones: Position drifted (0.35, 1.9) → (0.36, 1.92)
+   ❌ new_field_xyz: In template but NOT mapped
+   ```
 
 ### Phase 2: API Field Inventory (REQUIRED)
 
-1. **Load Available API Fields from ACTUAL data**
+1. **Load Available API Fields from ACTUAL data**:
    Read from `data/*_projects.json` to see REAL field names:
    ```python
    import json
@@ -81,95 +114,200 @@ This step syncs the script with any template changes before mapping fields.
        data = json.load(f)
 
    # Show actual structure
-   print(json.dumps(data['projects'][0], indent=2))
+   project = data['projects'][0]
+   print("=== PROJECT FIELDS ===")
+   print(json.dumps(project.get('project', {}), indent=2))
+   print("\n=== RESOLVED VALUES ===")
+   print(json.dumps(project.get('resolved', {}), indent=2))
+   print("\n=== MILESTONES ===")
+   print(f"Count: {len(project.get('milestones', []))}")
+   if project.get('milestones'):
+       print(json.dumps(project['milestones'][0], indent=2))
    ```
 
-   **Correct API Fields (from actual data):**
-   - `project.name`, `project.short_id`, `project.description_text`
-   - `project.status`, `project.mood`, `project.risk` (codes)
-   - `project.owner.name`, `project.program.name`
-   - `project.start_date`, `project.end_date`
-   - `project.budget_capex_initial` (BAC)
-   - `project.budget_capex_used` (Actual)
-   - `project.budget_capex_landing` (EAC)
-   - `project.effort`, `project.effort_used`
-   - `project.progress`, `project.milestone_progress`
-   - `project.gain_text`
-   - `milestones[]`: name, status ('done'/'todo'/'in-progress'), objective
-   - `decisions[]`: title, status
-   - `attention_points[]`: title, severity, status
-   - `members[]`: user.name, role.name
-   - `efforts[]`: team.name, effort, effort_used
+2. **Complete API Fields Reference**:
 
-2. **Present API Fields to User**
-   Show organized list with example values from real data
+   **From project object:**
+   - `project.name` - Project name
+   - `project.short_id` - Short identifier (e.g., "AQM-P13")
+   - `project.description_text` - Plain text description
+   - `project.status` - Status code (e.g., "in_progress")
+   - `project.mood` - Mood code (e.g., "good", "issues")
+   - `project.risk` - Risk code (e.g., "low", "medium", "high")
+   - `project.owner.name` - Owner's full name
+   - `project.program.name` - Program name
+   - `project.start_date` - Start date (ISO format)
+   - `project.end_date` - End date (ISO format)
+   - `project.budget_capex_initial` - BAC (Budget at Completion)
+   - `project.budget_capex_used` - Actual spent
+   - `project.budget_capex_landing` - EAC (Estimate at Completion)
+   - `project.effort` - Planned effort (days)
+   - `project.effort_used` - Actual effort used
+   - `project.progress` - Progress percentage (0-100)
+   - `project.milestone_progress` - Milestone progress (0-100)
+   - `project.gain` - Expected gain value
+   - `project.gain_text` - Gain description
+
+   **From resolved object (reference data labels):**
+   - `resolved.status` - Human-readable status label
+   - `resolved.mood` - Human-readable mood label
+   - `resolved.risk` - Human-readable risk label
+
+   **From milestones array:**
+   - `milestones[].name` - Milestone name
+   - `milestones[].status` - Status ('done', 'todo', 'in-progress')
+   - `milestones[].date` - Due date
+   - `milestones[].objective` - Objective description
+
+   **From other arrays:**
+   - `decisions[].title` - Decision title
+   - `attention_points[].title` - Attention point title
+   - `members[].user.name` - Team member name
+   - `members[].role.name` - Member's role
+   - `efforts[].team.name` - Team name
+   - `efforts[].effort` - Team's planned effort
+
+3. **NOT Available in API** (document these clearly):
+   - Mood comment/explanation text
+   - Deployment area
+   - End users (actual/target)
 
 ### Phase 3: Interactive Mapping (REQUIRED - USE AskUserQuestion)
 
 **YOU MUST ASK THE USER** for each field group using the AskUserQuestion tool.
 
-For each PPT placeholder group:
+For EACH template field, ask the user what data to display:
 
-1. **Use AskUserQuestion tool** to propose matches:
+1. **Title field**:
    ```
-   Question: "Para el campo 'Budget' del template, ¿qué campos quieres usar?"
+   Question: "For the TITLE field, what format do you want?"
    Options:
-   - "BAC: budget_capex_initial, Actual: budget_capex_used, EAC: budget_capex_landing"
-   - "Solo mostrar effort (días)"
-   - "Dejarlo vacío"
-   - "Otra configuración"
+   - "Project review : {name}" (Recommended)
+   - "Project: {name}"
+   - "{name} - {short_id}"
+   - "Custom format"
    ```
 
-2. **Wait for user response before continuing**
-
-3. **Confirm transforms needed:**
+2. **Status/Mood field**:
    ```
-   Question: "¿Qué formato para las fechas?"
+   Question: "For the MOOD_STATUS area, what information to show?"
    Options:
-   - "dd/mm/yyyy"
-   - "dd/mm/yy"
-   - "ISO (2024-01-15)"
+   - "Status + Mood + Owner" (Recommended)
+   - "Status + Mood only"
+   - "Status only"
+   - "Custom combination"
    ```
+
+3. **Scope & Milestones field**:
+   ```
+   Question: "For SCOPE & MILESTONES, what to display?"
+   Options:
+   - "Start/End dates + Milestone count" (Recommended)
+   - "Start/End dates only"
+   - "Milestone count + Progress %"
+   - "Leave empty"
+   ```
+
+4. **Info Area field**:
+   ```
+   Question: "For the INFO AREA (deployment/end users), what to show?"
+   Options:
+   - "Leave empty (data not available in API)" (Recommended)
+   - "Show placeholder text"
+   - "Use for custom notes"
+   ```
+
+5. **Achievements field**:
+   ```
+   Question: "For ACHIEVEMENTS section, what content?"
+   Options:
+   - "Project description (description_text)" (Recommended)
+   - "Gain description (gain_text)"
+   - "Custom text"
+   ```
+
+6. **Trends field**:
+   ```
+   Question: "For TRENDS section, what to display?"
+   Options:
+   - "Progress % + Milestone Progress %" (Recommended)
+   - "Progress % only"
+   - "Milestone Progress % only"
+   ```
+
+7. **Next Steps field**:
+   ```
+   Question: "For NEXT STEPS, what to show?"
+   Options:
+   - "Pending milestones (up to 3)" (Recommended)
+   - "Upcoming decisions"
+   - "Mix of milestones and decisions"
+   ```
+
+8. **Made field**:
+   ```
+   Question: "For MADE (completed work), what to show?"
+   Options:
+   - "Completed milestones" (Recommended)
+   - "All milestones with status"
+   - "Leave empty"
+   ```
+
+9. **Risks field**:
+   ```
+   Question: "For RISKS section, what to display?"
+   Options:
+   - "Risk level only" (Recommended)
+   - "Risk level + Attention points"
+   - "Attention points only"
+   ```
+
+10. **Budget field**:
+    ```
+    Question: "For BUDGET section, what values?"
+    Options:
+    - "BAC + Actual + EAC (CAPEX)" (Recommended)
+    - "BAC + Actual + EAC + Effort"
+    - "Only if values exist"
+    ```
+
+11. **Date format**:
+    ```
+    Question: "What date format to use throughout?"
+    Options:
+    - "dd/mm/yy" (Recommended)
+    - "dd/mm/yyyy"
+    - "ISO (2024-01-15)"
+    ```
 
 ### Phase 4: Save Results (REQUIRED)
 
-1. **Update mapping.json** with the user's choices
-2. **Update generate_ppt.py** if field names changed
-3. **Update MISSING_FIELDS.md** with any missing fields
-4. **Show summary** of what was configured
+1. **Update config/mapping.json** with ALL user choices:
+   - Update `user_preferences` section
+   - Update each field in `slides.project_card`
+   - Include shape name, position, source, format, and notes
 
-### Phase 5: Sync Template Positions (REQUIRED)
+2. **Update scripts/generate_ppt.py** if positions changed:
+   - Update `EXPECTED_SHAPE_POSITIONS` constant
+   - Update position arguments in `populate_project_slide()` function
+   - Verify field names match API data structure
 
-**CRITICAL: After mapping, ensure `generate_ppt.py` has correct shape positions.**
+3. **Update tracking/MISSING_FIELDS.md** with any missing fields noted
 
-1. **Analyze current template**:
-   ```bash
-   python3 scripts/generate_ppt.py --analyze
+4. **Show summary to user**:
+   ```
+   MAPPING COMPLETE
+   ================
+   Fields configured: 11
+   Positions updated: 2
+   New fields added: 0
+
+   Files updated:
+   - config/mapping.json
+   - scripts/generate_ppt.py (EXPECTED_SHAPE_POSITIONS)
    ```
 
-2. **Compare with `EXPECTED_SHAPE_POSITIONS`** in `generate_ppt.py`:
-   - Read the current constant values
-   - Compare with analysis output
-   - If different, update the constant
-
-3. **Update `EXPECTED_SHAPE_POSITIONS`** if needed:
-   ```python
-   # In scripts/generate_ppt.py, update this constant:
-   EXPECTED_SHAPE_POSITIONS = {
-       'title': (x, y),           # From analysis
-       'date': (x, y),
-       'mood_status': (x, y),
-       # ... etc
-   }
-   ```
-
-4. **Also update shape positions in `populate_project_slide()`** if they changed:
-   - The function uses hardcoded positions like `find_shape_by_pos(0.4, 0.2)`
-   - These must match the actual template positions
-
-### Phase 6: Final Verification (REQUIRED)
-
-**CRITICAL: Before finishing, ALWAYS verify the implementation matches the mapping.**
+### Phase 5: Final Verification (CRITICAL)
 
 1. **Run verification**:
    ```bash
@@ -177,62 +315,40 @@ For each PPT placeholder group:
    ```
    Must show "✓ Template is compatible"
 
-2. **Verify field names match mapping.json**:
-   ```python
-   # Verify these match the actual API field names:
-   # - budget_capex_initial (not budget_capex)
-   # - budget_capex_used (not budget_actual)
-   # - budget_capex_landing (not budget_eac)
-   # - status == 'done' for milestones (not is_completed)
-   ```
-
-3. **Cross-check with actual data**:
-   - Read latest `data/*_projects.json`
-   - Confirm field names in script match field names in data
+2. **Cross-check with actual data**:
+   - Confirm field names in script match API data exactly
    - Test at least one value lookup mentally
 
-4. **Update CLAUDE_ERRORS.md** if any issues were found
+3. **Generate test PPT** (optional but recommended):
+   ```bash
+   python3 scripts/generate_ppt.py
+   ```
 
-5. **Report to user**: "Verificación completada. Template sincronizado y campos correctos."
+4. **Report to user**:
+   ```
+   ✓ Verification complete
+   ✓ Template positions synchronized
+   ✓ Field names validated against API data
+
+   Ready to generate PPT with /ppt-skill
+   ```
+
+---
 
 ## CRITICAL RULES
 
-1. **NEVER skip the interactive phase** - Always ask the user
-2. **NEVER assume defaults** without asking
-3. **USE AskUserQuestion tool** for each decision
-4. **READ ACTUAL DATA** to get correct field names
-5. **UPDATE THE SCRIPT** if mapping changes (generate_ppt.py must match mapping.json)
-6. **SYNC TEMPLATE POSITIONS** - Run Phase 5 to update EXPECTED_SHAPE_POSITIONS
-7. **ALWAYS VERIFY** - Run Phase 6 with `--verify` flag before finishing
-8. **LOG ERRORS** - Update tracking/CLAUDE_ERRORS.md if any issues found
-
-## Example Flow
-
-```
-Claude: Analizando template en templates/...
-        Encontré X slides con estos campos:
-        - Slide 0: [shapes found with positions]
-        - Slide 1: ...
-
-        [Uses AskUserQuestion]
-        "Para el campo 'Budget', ¿cuáles valores quieres mostrar?"
-
-User: [Selects option]
-
-Claude: Perfecto. Ahora para 'Milestones'...
-        [Uses AskUserQuestion]
-
-[... continues for each field ...]
-
-Claude: Mapping completado. Guardando en config/mapping.json...
-        También actualicé scripts/generate_ppt.py con los campos correctos.
-```
+1. **NEVER skip template analysis** - Run --analyze FIRST
+2. **CAPTURE ALL SHAPES** - Don't miss any text shape
+3. **VERIFY POSITIONS** - Run --verify after any changes
+4. **USE AskUserQuestion** - Ask for EVERY field, never assume
+5. **READ ACTUAL DATA** - Get field names from data/*.json, not memory
+6. **UPDATE ALL FILES** - mapping.json AND generate_ppt.py must match
+7. **DOCUMENT EVERYTHING** - Include notes for each mapping decision
+8. **LOG ERRORS** - Update tracking/CLAUDE_ERRORS.md if issues found
 
 ---
 
 ## PPT Generation Rules (for generate_ppt.py updates)
-
-When updating the script, ensure these rules are followed:
 
 ### Template Preservation (MANDATORY)
 
@@ -241,20 +357,14 @@ When updating the script, ensure these rules are followed:
    - Borders and fills
    - Colors and gradients
    - Font styles
-   - Shape formatting
 
 2. **Find shapes by position** (not by name):
    - Shape names change after duplication
    - Use Euclidean distance with tolerance (~0.15 inches)
-   - Build position map from template analysis
 
-3. **Delete placeholders entirely** on new slides (Summary/Data Notes):
-   - Clearing text shows "Double click to edit"
-   - Must remove shape element from XML
-
-4. **Handle visual section titles**:
-   - If template has titles in background (not in text shapes)
-   - Add leading newline to push content below visual title
+3. **Handle visual section titles**:
+   - If template has titles in background
+   - Add leading newline to push content below
 
 ### Font Size Guidelines
 
@@ -267,36 +377,58 @@ When updating the script, ensure these rules are followed:
 | Date/metadata | 8pt |
 | Dense notes | 6-7pt |
 
-### Code Patterns
+---
 
-```python
-# Duplicate slide preserving all visuals
-def duplicate_slide(prs, slide_index):
-    from copy import deepcopy
-    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
-    # ... (full implementation in ppt-skill.md)
+## Example Session
 
-# Find shape by position
-def find_shape_by_pos(slide, target_x, target_y, tolerance=0.15):
-    # ... (full implementation in ppt-skill.md)
+```
+Claude: Running comprehensive template analysis...
 
-# Delete placeholders
-def delete_placeholder_shapes(slide):
-    shapes_to_delete = [s for s in slide.shapes if s.is_placeholder]
-    for shape in shapes_to_delete:
-        sp = shape._element
-        sp.getparent().remove(sp)
+        $ python3 scripts/generate_ppt.py --analyze
 
-# Set text with optional font size
-def set_shape_text(shape, text, font_size=None):
-    if shape and shape.has_text_frame:
-        tf = shape.text_frame
-        # Clear existing paragraphs
-        while len(tf.paragraphs) > 1:
-            tf._txBody.remove(tf.paragraphs[-1]._p)
-        if tf.paragraphs:
-            tf.paragraphs[0].clear()
-            tf.paragraphs[0].text = str(text) if text else ""
-            if font_size:
-                tf.paragraphs[0].font.size = Pt(font_size)
+        COMPREHENSIVE TEMPLATE ANALYSIS
+        ================================
+        File: ProjectCardAndFollowUp.pptx
+        Dimensions: 10.00" x 5.62"
+        Total Slides: 3
+
+        SLIDE 0 (Project Review):
+        📝 TEXT SHAPES (11):
+          ▸ Google Shape;671;p1
+            Position: (0.4, 0.2) | Size: 5.0" x 0.3"
+            Text: "Project review :"
+
+          ▸ Google Shape;681;p1
+            Position: (8.9, 0.1) | Size: 1.0" x 0.2"
+            Text: "dd/mm/yy"
+          ... (all other shapes)
+
+        Now let me verify against current mapping...
+
+        $ python3 scripts/generate_ppt.py --verify
+
+        VERIFICATION REPORT
+        ===================
+        ✓ 11/11 shapes matched
+        Template is compatible
+
+Claude: Template analysis complete. I found 11 mappable fields.
+
+        [Uses AskUserQuestion]
+        "For the TITLE field, what format?"
+
+User: [Selects "Project review : {name}"]
+
+Claude: Perfect. Now for the MOOD_STATUS area...
+        [Uses AskUserQuestion]
+
+[... continues for each field ...]
+
+Claude: Mapping complete! Updating files...
+
+        ✓ config/mapping.json updated
+        ✓ scripts/generate_ppt.py positions verified
+        ✓ Final verification passed
+
+        Ready to generate PPT with /ppt-skill
 ```

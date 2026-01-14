@@ -1,11 +1,23 @@
 # Flash Report Custom AirSaas - Claude Code Instructions
 
+## Specification Reference
+
+**IMPORTANT:** The complete project specification is in `SPEC.md`. Always consult this file for:
+- User flows and workflows
+- Commands reference
+- PPT output structure requirements
+- Acceptance criteria
+- Known missing fields
+
+---
+
 ## Documentation Sync Rule
 
 **IMPORTANT:** When updating any documentation or API-related information, keep ALL documentation files synchronized:
 
 | File | Content |
 |------|---------|
+| `SPEC.md` | Project specification - source of truth for requirements |
 | `CLAUDE.md` | Claude Code instructions, API reference, mapping |
 | `README.md` | User documentation, Quick Start, endpoints |
 | `scripts/airsaas_fetcher.gs` | Google Apps Script with API endpoints |
@@ -32,7 +44,7 @@ This project automates the generation of PowerPoint portfolio reports from AirSa
 
 **Workspace:** `aqme-corp-`
 
-**Reference PPT Template:** `templates/systra_template.pptx`
+**Reference PPT Template:** `templates/ProjectCardAndFollowUp.pptx`
 
 ---
 
@@ -54,6 +66,7 @@ This project automates the generation of PowerPoint portfolio reports from AirSa
 ```
 flash-report-custom-airsaas-poc/
 ├── CLAUDE.md                    # This file - instructions for Claude Code
+├── SPEC.md                      # Project specification (source of truth)
 ├── README.md                    # Project documentation
 ├── .env                         # Credentials (gitignored)
 ├── .env.example                 # Template for .env
@@ -61,7 +74,7 @@ flash-report-custom-airsaas-poc/
 │   ├── projects.json            # Project IDs to export
 │   └── mapping.json             # Field mapping AirSaas → PPT
 ├── templates/
-│   └── systra_template.pptx     # Reference PPT template (3 slides)
+│   └── ProjectCardAndFollowUp.pptx  # Reference PPT template
 ├── data/
 │   └── {date}_projects.json     # Fetched data cache
 ├── outputs/
@@ -92,11 +105,6 @@ flash-report-custom-airsaas-poc/
 ```json
 {
   "workspace": "aqme-corp-",
-  "smartview": {
-    "name": "Projets Vitaux CODIR",
-    "id": "f67bb94f-464e-44e1-88bc-101bccaed640",
-    "url": "https://app.airsaas.io/space/aqme-corp-/projects/portfolio/..."
-  },
   "projects": [
     {
       "id": "UUID-of-project",

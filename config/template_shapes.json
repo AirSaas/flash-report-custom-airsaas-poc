@@ -1,0 +1,373 @@
+{
+  "_description": "Template shape positions extracted by generate_ppt.py",
+  "_template": "ProjectCardAndFollowUp.pptx",
+  "_exported_at": "2026-01-14T12:23:15.187578",
+  "_dimensions": {
+    "width_inches": 10.0,
+    "height_inches": 5.62
+  },
+  "layouts": [
+    {
+      "index": 0,
+      "name": "2_Ipo_Project_Review_slide_1"
+    },
+    {
+      "index": 1,
+      "name": "Texte + message clef"
+    },
+    {
+      "index": 2,
+      "name": "Ipo_Project_Review_Slide_2"
+    },
+    {
+      "index": 3,
+      "name": "Texte"
+    },
+    {
+      "index": 4,
+      "name": "2 Textes"
+    },
+    {
+      "index": 5,
+      "name": "Texte + soustitre"
+    },
+    {
+      "index": 6,
+      "name": "Project_Card"
+    },
+    {
+      "index": 7,
+      "name": "1_Ipo_Project_Review_slide_1"
+    },
+    {
+      "index": 8,
+      "name": "Texte + message clef + soustitre"
+    },
+    {
+      "index": 9,
+      "name": "Chapitre image vert"
+    }
+  ],
+  "slides": [
+    {
+      "index": 0,
+      "layout": "2_Ipo_Project_Review_slide_1",
+      "shapes": [
+        {
+          "name": "Google Shape;681;p1",
+          "type": "Shape",
+          "position": {
+            "x": 8.88,
+            "y": 0.08
+          },
+          "size": {
+            "width": 1.07,
+            "height": 0.35
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "dd/mm/yy",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;671;p1",
+          "type": "SlidePlaceholder",
+          "position": {
+            "x": 0.39,
+            "y": 0.17
+          },
+          "size": {
+            "width": 7.99,
+            "height": 0.43
+          },
+          "has_text_frame": true,
+          "is_placeholder": true,
+          "text_preview": "Project review : ",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;678;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.39,
+            "y": 0.98
+          },
+          "size": {
+            "width": 4.53,
+            "height": 0.96
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "xxx\n\n",
+          "paragraph_count": 3
+        },
+        {
+          "name": "Google Shape;676;p1",
+          "type": "Shape",
+          "position": {
+            "x": 5.14,
+            "y": 1.0
+          },
+          "size": {
+            "width": 4.51,
+            "height": 1.19
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "Made :\nxxx",
+          "paragraph_count": 2
+        },
+        {
+          "name": "Google Shape;672;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.35,
+            "y": 1.93
+          },
+          "size": {
+            "width": 4.57,
+            "height": 0.98
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "\n",
+          "paragraph_count": 2
+        },
+        {
+          "name": "Google Shape;677;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.37,
+            "y": 2.15
+          },
+          "size": {
+            "width": 4.53,
+            "height": 0.75
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "Deployment area: \nActual nb end users vs target: \nEnd user profiles: \nSee planning for milestones",
+          "paragraph_count": 4
+        },
+        {
+          "name": "Google Shape;680;p1",
+          "type": "Shape",
+          "position": {
+            "x": 5.14,
+            "y": 2.48
+          },
+          "size": {
+            "width": 4.41,
+            "height": 1.04
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "xxx\n",
+          "paragraph_count": 2
+        },
+        {
+          "name": "Google Shape;673;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.39,
+            "y": 3.16
+          },
+          "size": {
+            "width": 4.53,
+            "height": 1.12
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "xxx",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;674;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.39,
+            "y": 4.32
+          },
+          "size": {
+            "width": 4.57,
+            "height": 0.99
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;675;p1",
+          "type": "Shape",
+          "position": {
+            "x": 5.13,
+            "y": 4.4
+          },
+          "size": {
+            "width": 4.43,
+            "height": 1.15
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "Build\nBAC : xxx K€ (Dev, Integration, hosting, maintenance, support) \nActual : xxx K€\nEAC : xxx K€\n",
+          "paragraph_count": 5
+        },
+        {
+          "name": "Google Shape;679;p1",
+          "type": "Shape",
+          "position": {
+            "x": 0.39,
+            "y": 4.53
+          },
+          "size": {
+            "width": 4.53,
+            "height": 0.89
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "xxx",
+          "paragraph_count": 1
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "layout": "Texte + message clef",
+      "shapes": [
+        {
+          "name": "Google Shape;687;p2",
+          "type": "Shape",
+          "position": {
+            "x": 8.88,
+            "y": 0.08
+          },
+          "size": {
+            "width": 1.07,
+            "height": 0.35
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "dd/mm/yy",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;686;p2",
+          "type": "SlidePlaceholder",
+          "position": {
+            "x": 0.29,
+            "y": 0.12
+          },
+          "size": {
+            "width": 8.53,
+            "height": 0.49
+          },
+          "has_text_frame": true,
+          "is_placeholder": true,
+          "text_preview": "Project review:",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;688;p2",
+          "type": "Shape",
+          "position": {
+            "x": 0.0,
+            "y": 4.95
+          },
+          "size": {
+            "width": 4.53,
+            "height": 0.34
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "See the link: Followup budget file\n",
+          "paragraph_count": 2
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "layout": "Ipo_Project_Review_Slide_2",
+      "shapes": [
+        {
+          "name": "Google Shape;696;p3",
+          "type": "Shape",
+          "position": {
+            "x": 8.88,
+            "y": 0.08
+          },
+          "size": {
+            "width": 1.07,
+            "height": 0.35
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "dd/mm/yy",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;694;p3",
+          "type": "SlidePlaceholder",
+          "position": {
+            "x": 0.28,
+            "y": 0.12
+          },
+          "size": {
+            "width": 8.32,
+            "height": 0.49
+          },
+          "has_text_frame": true,
+          "is_placeholder": true,
+          "text_preview": "placeholder",
+          "paragraph_count": 1
+        },
+        {
+          "name": "Google Shape;697;p3",
+          "type": "Shape",
+          "position": {
+            "x": 0.35,
+            "y": 1.1
+          },
+          "size": {
+            "width": 3.32,
+            "height": 0.25
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "Insert planning with timeline (phases, milestones & Go live date)\n\n",
+          "paragraph_count": 3
+        },
+        {
+          "name": "Google Shape;698;p3",
+          "type": "GraphicFrame",
+          "position": {
+            "x": 0.35,
+            "y": 4.21
+          },
+          "size": {
+            "width": 3.28,
+            "height": 3.28
+          },
+          "has_text_frame": false,
+          "is_placeholder": false
+        },
+        {
+          "name": "Google Shape;695;p3",
+          "type": "Shape",
+          "position": {
+            "x": 0.35,
+            "y": 4.38
+          },
+          "size": {
+            "width": 9.29,
+            "height": 0.98
+          },
+          "has_text_frame": true,
+          "is_placeholder": false,
+          "text_preview": "\n",
+          "paragraph_count": 2
+        }
+      ]
+    }
+  ]
+}

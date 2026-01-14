@@ -1,11 +1,25 @@
 {
   "_description": "Field mapping from AirSaas API to PPT template placeholders",
-  "_instructions": "Run /mapping command to populate this file through interactive conversation",
+  "_last_updated": "2026-01-14",
+  "_template": "ProjectCardAndFollowUp.pptx",
   "_status_values": {
     "ok": "Field successfully mapped to API data",
     "missing": "Field not available in API",
     "manual": "Field requires manual input",
-    "calculated": "Field derived from other data"
+    "calculated": "Field derived from other data",
+    "disabled": "Field intentionally left empty"
+  },
+  "user_preferences": {
+    "date_format": "dd/mm/yy",
+    "budget_display": "BAC + Actual + EAC",
+    "mood_status_display": "Status + Mood only",
+    "info_area": "empty",
+    "achievements": "description_text",
+    "next_steps": "milestones_pending",
+    "risks_display": "risk_level_only",
+    "made_display": "milestones_completed",
+    "scope_display": "fechas_milestones_count",
+    "trends_display": "progress_trends"
   },
   "slides": {
     "summary": {
@@ -17,122 +31,112 @@
       "date": {
         "source": "generated",
         "transform": "current_date",
+        "format": "dd/mm/yy",
         "status": "ok"
       },
       "project_list": {
         "source": "projects",
-        "fields": ["name", "mood", "status"],
+        "fields": ["short_id", "name", "status", "mood", "owner"],
         "status": "ok"
       }
     },
     "project_card": {
-      "name": {
+      "title": {
         "source": "project.name",
+        "format": "Project review : {name}",
+        "position": "(0.39, 0.17)",
+        "shape": "Google Shape;671;p1",
+        "size": "7.99\" x 0.43\"",
         "status": "ok"
       },
-      "short_id": {
-        "source": "project.short_id",
+      "date": {
+        "source": "generated",
+        "format": "dd/mm/yy",
+        "position": "(8.88, 0.08)",
+        "shape": "Google Shape;681;p1",
+        "size": "1.07\" x 0.35\"",
         "status": "ok"
       },
-      "status": {
-        "source": "project.status",
-        "transform": "resolve_status_label",
-        "status": "ok"
+      "mood_status": {
+        "source": ["resolved.status", "resolved.mood"],
+        "format": "Status: {status}\nMood: {mood}",
+        "position": "(0.39, 0.98)",
+        "shape": "Google Shape;678;p1",
+        "size": "4.53\" x 0.96\"",
+        "status": "ok",
+        "notes": "User chose: Status + Mood only (no owner)"
       },
-      "mood": {
-        "source": "project.mood",
-        "transform": "resolve_mood_label",
-        "status": "ok"
+      "scope_milestones": {
+        "source": ["project.start_date", "project.end_date", "milestones"],
+        "format": "Start: {start}\nEnd: {end}\nMilestones: {completed}/{total}",
+        "position": "(0.35, 1.93)",
+        "shape": "Google Shape;672;p1",
+        "size": "4.57\" x 0.98\"",
+        "status": "ok",
+        "notes": "User chose: Fechas + Milestones count"
       },
-      "mood_comment": {
+      "info_area": {
         "source": null,
-        "status": "missing",
-        "notes": "API returns mood code only, no comment text"
-      },
-      "risk": {
-        "source": "project.risk",
-        "transform": "resolve_risk_label",
-        "status": "ok"
-      },
-      "owner": {
-        "source": "project.owner.full_name",
-        "status": "ok"
-      },
-      "program": {
-        "source": "project.program.name",
-        "status": "ok"
-      },
-      "budget_bac": {
-        "source": "project.budget_capex_initial",
-        "status": "ok"
-      },
-      "budget_actual": {
-        "source": "project.budget_capex_used",
-        "status": "ok"
-      },
-      "budget_eac": {
-        "source": "project.budget_capex_landing",
-        "status": "ok"
-      },
-      "budget_opex_initial": {
-        "source": "project.budget_opex_initial",
-        "status": "ok"
-      },
-      "budget_opex_used": {
-        "source": "project.budget_opex_used",
-        "status": "ok"
-      },
-      "budget_opex_landing": {
-        "source": "project.budget_opex_landing",
-        "status": "ok"
-      },
-      "effort": {
-        "source": "project.effort",
-        "status": "ok"
-      },
-      "effort_used": {
-        "source": "project.effort_used",
-        "status": "ok"
-      },
-      "progress": {
-        "source": "project.progress",
-        "status": "ok"
-      },
-      "milestone_progress": {
-        "source": "project.milestone_progress",
-        "status": "ok"
-      },
-      "gain": {
-        "source": "project.gain",
-        "status": "ok"
+        "position": "(0.37, 2.15)",
+        "shape": "Google Shape;677;p1",
+        "size": "4.53\" x 0.75\"",
+        "status": "disabled",
+        "notes": "User chose: Leave empty. Deployment area and end users not available in API."
       },
       "achievements": {
-        "source": "project.goals",
-        "transform": "format_goals",
-        "status": "ok"
+        "source": "project.description_text",
+        "position": "(0.39, 3.16)",
+        "shape": "Google Shape;673;p1",
+        "size": "4.53\" x 1.12\"",
+        "status": "ok",
+        "notes": "User chose: Description del proyecto"
       },
-      "start_date": {
-        "source": "project.start_date",
-        "transform": "format_date",
-        "status": "ok"
+      "trends": {
+        "source": ["project.progress", "project.milestone_progress"],
+        "format": "Progress: {progress}%\nMilestone Progress: {ms_progress}%",
+        "position": "(0.39, 4.32)",
+        "shape": "Google Shape;674;p1",
+        "size": "4.57\" x 0.99\"",
+        "status": "ok",
+        "notes": "User chose: Progress trends"
       },
-      "end_date": {
-        "source": "project.end_date",
-        "transform": "format_date",
-        "status": "ok"
-      }
-    },
-    "project_progress": {
-      "completion_percent": {
+      "next_steps": {
         "source": "milestones",
-        "transform": "calculate_completion",
-        "status": "calculated",
-        "notes": "Calculated from completed vs total milestones"
+        "filter": "status != 'done'",
+        "limit": 3,
+        "position": "(0.39, 4.53)",
+        "shape": "Google Shape;679;p1",
+        "size": "4.53\" x 0.89\"",
+        "status": "ok",
+        "notes": "User chose: Milestones pendientes"
       },
-      "kpis": {
-        "source": "project.goals",
-        "transform": "extract_kpis",
-        "status": "ok"
+      "made": {
+        "source": "milestones",
+        "filter": "status == 'done'",
+        "limit": 3,
+        "position": "(5.14, 1.0)",
+        "shape": "Google Shape;676;p1",
+        "size": "4.51\" x 1.19\"",
+        "status": "ok",
+        "notes": "User chose: Milestones completados"
+      },
+      "risks": {
+        "source": "resolved.risk",
+        "format": "Risk Level: {risk}",
+        "position": "(5.14, 2.48)",
+        "shape": "Google Shape;680;p1",
+        "size": "4.41\" x 1.04\"",
+        "status": "ok",
+        "notes": "User chose: Solo Risk Level (no attention points)"
+      },
+      "budget": {
+        "source": ["project.budget_capex_initial", "project.budget_capex_used", "project.budget_capex_landing"],
+        "format": "Build\nBAC: {bac} K€\nActual: {actual} K€\nEAC: {eac} K€",
+        "position": "(5.13, 4.4)",
+        "shape": "Google Shape;675;p1",
+        "size": "4.43\" x 1.15\"",
+        "status": "ok",
+        "notes": "User chose: BAC + Actual + EAC"
       }
     },
     "project_planning": {
@@ -142,27 +146,16 @@
         "status": "ok"
       },
       "team_efforts": {
-        "source": "GET /projects/{id}/efforts/",
-        "status": "ok",
-        "notes": "Returns per-team effort breakdown"
-      },
-      "members": {
-        "source": "GET /projects/{id}/members/",
-        "status": "ok",
-        "notes": "Returns project team members with roles"
-      },
-      "decisions": {
-        "source": "decisions",
-        "transform": "format_decisions",
-        "status": "ok"
-      },
-      "attention_points": {
-        "source": "attention_points",
-        "transform": "format_attention_points",
+        "source": "efforts",
         "status": "ok"
       }
     },
     "data_notes": {
+      "api_limitations": [
+        {"field": "Mood comment", "reason": "API returns code only, no text"},
+        {"field": "Deployment area", "reason": "Field not available in API"},
+        {"field": "End users (actual/target)", "reason": "Field not available in API"}
+      ],
       "unfilled_fields": {
         "source": "generated",
         "transform": "collect_unfilled",

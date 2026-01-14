@@ -1,20 +1,15 @@
 {
   "workspace": "aqme-corp-",
-  "smartview": {
-    "name": "Projets Vitaux CODIR",
-    "id": "f67bb94f-464e-44e1-88bc-101bccaed640",
-    "url": "https://app.airsaas.io/space/aqme-corp-/projects/portfolio/projets-vitaux-codir_f67bb94f-464e-44e1-88bc-101bccaed640"
-  },
   "projects": [
     {
-      "id": "eb70f870-7097-4dfa-bcb0-dc9b34a7cf4f",
-      "short_id": "AQM-P8",
-      "name": "Management de la gestion des stocks"
+      "id": "7325bcd3-3998-442b-909e-e5bf6896a5d8",
+      "short_id": "",
+      "name": "Mise en place d'un outil de com' inApp vers nos utilisateurs"
     },
     {
-      "id": "0ba1f2ff-2e71-4e30-b21c-c221428b77d3",
-      "short_id": "AQM-P12",
-      "name": "Harmonisation des données client FB154"
+      "id": "e15a49fb-2255-41d5-a7d3-45f1f6ac182e",
+      "short_id": "",
+      "name": "Remplacement du système de paiement"
     },
     {
       "id": "387cb18b-93ec-4bf5-8935-0bba96abdb5b",
@@ -22,15 +17,25 @@
       "name": "Lancement du marché Espagnol"
     },
     {
-      "id": "6465428e-56b2-4747-b7db-6de0f19e87d7",
-      "short_id": "AQM-P14",
-      "name": "Retour au bureau - gestion du flex office"
+      "id": "eb70f870-7097-4dfa-bcb0-dc9b34a7cf4f",
+      "short_id": "AQM-P8",
+      "name": "Management de la gestion des stocks"
     },
     {
-      "id": "e991a00d-8db4-4036-883f-c2ff85d7f4cc",
-      "short_id": "AQM-P67",
-      "name": "Formation à l'utilisation de ChatGPT"
+      "id": "73f7942e-c072-4437-8f01-9610bc3fa56f",
+      "short_id": "",
+      "name": "Ticket restau dématérialisés"
+    },
+    {
+      "id": "013f9d4a-857c-427b-9c90-1b70e667b54c",
+      "short_id": "",
+      "name": "Industrialisation de nos KPI métier"
+    },
+    {
+      "id": "5829eb21-8b7d-4627-ab86-7309ea0ca901",
+      "short_id": "",
+      "name": "Nouveau plan de compétence"
     }
   ],
-  "_instructions": "Add project IDs manually. SmartView project lists are not available via API. Get project IDs from the AirSaas UI or by inspecting network requests."
+  "_note": "SmartView: Projets Vitaux CODIR (7 projects). IDs obtained manually from AirSaas UI."
 }
