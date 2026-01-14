@@ -64,6 +64,16 @@ sequenceDiagram
 - Support for multiple output methods: python-pptx (programmatic) and Gamma API (AI-powered)
 - Claude Code slash commands for streamlined workflow
 
+## PPT Output Structure
+
+Generated presentations follow this structure (per spec section 5.1):
+
+| Slide | Content |
+|-------|---------|
+| 1 | **Summary** - List of all projects with mood/status |
+| 2 to N | **Project slides** - One slide per project with details |
+| Last | **Data Notes** - List of unfilled fields and API limitations |
+
 ## Requirements
 
 - Python 3.8+
@@ -210,6 +220,24 @@ Use the following slash commands:
 ```bash
 # Generate PPT from fetched data
 python3 scripts/generate_ppt.py
+
+# Verify template compatibility
+python3 scripts/generate_ppt.py --verify
+
+# Analyze template (show shape positions)
+python3 scripts/generate_ppt.py --analyze
+```
+
+### Template Verification
+
+The script automatically verifies the template before generating. If the template has changed, run:
+
+```bash
+# 1. Analyze new template structure
+python3 scripts/generate_ppt.py --analyze
+
+# 2. Run /mapping to sync field positions
+/mapping
 ```
 
 ## Project Structure

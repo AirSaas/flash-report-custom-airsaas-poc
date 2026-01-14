@@ -5,6 +5,32 @@
     "id": "f67bb94f-464e-44e1-88bc-101bccaed640",
     "url": "https://app.airsaas.io/space/aqme-corp-/projects/portfolio/projets-vitaux-codir_f67bb94f-464e-44e1-88bc-101bccaed640"
   },
-  "projects": [],
+  "projects": [
+    {
+      "id": "eb70f870-7097-4dfa-bcb0-dc9b34a7cf4f",
+      "short_id": "AQM-P8",
+      "name": "Management de la gestion des stocks"
+    },
+    {
+      "id": "0ba1f2ff-2e71-4e30-b21c-c221428b77d3",
+      "short_id": "AQM-P12",
+      "name": "Harmonisation des données client FB154"
+    },
+    {
+      "id": "387cb18b-93ec-4bf5-8935-0bba96abdb5b",
+      "short_id": "AQM-P13",
+      "name": "Lancement du marché Espagnol"
+    },
+    {
+      "id": "6465428e-56b2-4747-b7db-6de0f19e87d7",
+      "short_id": "AQM-P14",
+      "name": "Retour au bureau - gestion du flex office"
+    },
+    {
+      "id": "e991a00d-8db4-4036-883f-c2ff85d7f4cc",
+      "short_id": "AQM-P67",
+      "name": "Formation à l'utilisation de ChatGPT"
+    }
+  ],
   "_instructions": "Add project IDs manually. SmartView project lists are not available via API. Get project IDs from the AirSaas UI or by inspecting network requests."
 }

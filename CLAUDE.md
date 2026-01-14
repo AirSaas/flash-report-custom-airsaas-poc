@@ -427,37 +427,90 @@ Response includes `pptxUrl` when `exportAs: "pptx"`. Download immediately as URL
 ### Script Location
 `scripts/generate_ppt.py`
 
+### Script Commands
+
+| Command | Description |
+|---------|-------------|
+| `python3 scripts/generate_ppt.py` | Generate PPT (with template verification) |
+| `python3 scripts/generate_ppt.py --verify` | Verify template compatibility only |
+| `python3 scripts/generate_ppt.py --analyze` | Analyze template and show shape positions |
+
+### Template Verification
+
+The script automatically verifies the template before generating:
+
+1. **Checks shape positions** against `EXPECTED_SHAPE_POSITIONS` constant
+2. **Reports warnings** if shapes have moved or are missing
+3. **Continues generating** even if verification fails (with warning)
+
+```
+Verifying template compatibility...
+✓ Template verified OK
+```
+
+If template changed significantly:
+```
+⚠️  Template may have changed! Only 60% of expected shapes found.
+   Run: python3 scripts/generate_ppt.py --analyze
+   Then update EXPECTED_SHAPE_POSITIONS in the script.
+```
+
+### Output Structure (per spec section 5.1)
+
+| Slide | Content |
+|-------|---------|
+| 1 | **Summary** - List of all projects with mood/status |
+| 2 to N | **Project slides** - One slide per project with details |
+| Last | **Data Notes** - List of unfilled fields and API limitations |
+
 ### How It Works
 
-1. Loads template from `templates/systra_template.pptx`
-2. Reads latest data from `data/{date}_projects.json`
-3. Populates slide 1 shapes by name mapping
-4. Updates slide 2 (budget) title
-5. Updates slide 3 (planning) with milestones
+1. **Verifies template** - Checks shape positions match expectations
+2. Creates **Summary slide** with all projects listed (ID, Name, Status, Mood, Owner)
+3. Reads latest data from `data/{date}_projects.json`
+4. Creates **Project slides** - one per project with:
+   - Title, date
+   - Status, mood, owner
+   - Start/end dates, milestones
+   - Achievements, next steps
+   - Budget, risks
+5. Creates **Data Notes slide** listing:
+   - Known API limitations (mood comment, deployment area, end users)
+   - Per-project unfilled fields
 6. Saves to `outputs/{date}_portfolio_skill.pptx`
 
-### Running the Script
+### Template Handling Rules (CRITICAL)
 
-```bash
-python3 scripts/generate_ppt.py
-```
+When working with any PPT template, follow these rules to preserve visual elements:
 
-### Shape Name Mapping
+1. **Analyze template first** - Run python-pptx to extract shape positions and sizes
+2. **Duplicate slides via XML** - Preserves images, borders, colors, fonts
+3. **Find shapes by position** - Names change after duplication; use Euclidean distance
+4. **Delete placeholders entirely** - On Summary/Data Notes slides (not just clear text)
+5. **Handle visual section titles** - Add leading newline if template has titles in background
 
-The script uses exact shape names from the template:
 ```python
-SLIDE1_SHAPES = {
-    'title': 'Google Shape;671;p1',
-    'mood_comment': 'Google Shape;678;p1',
-    'info': 'Google Shape;677;p1',
-    'achievements': 'Google Shape;673;p1',
-    'next_steps': 'Google Shape;679;p1',
-    'budget': 'Google Shape;675;p1',
-    'made': 'Google Shape;676;p1',
-    'risks': 'Google Shape;680;p1',
-    'date': 'Google Shape;681;p1',
-}
+# Analyze current template
+from pptx import Presentation
+prs = Presentation('templates/YOUR_TEMPLATE.pptx')
+for slide in prs.slides:
+    for shape in slide.shapes:
+        x, y = shape.left.inches, shape.top.inches
+        print(f"{shape.name}: ({x:.2f}, {y:.2f})")
 ```
+
+### Font Size Guidelines
+
+| Element | Recommended Size |
+|---------|------------------|
+| Slide title | 14-20pt |
+| Section headers | 10-12pt |
+| Body content | 8-10pt |
+| Table content | 7-8pt |
+| Date/metadata | 8pt |
+| Dense notes | 6-7pt |
+
+**Always analyze template and adjust font sizes to fit content in shapes.**
 
 ### Dependencies
 
@@ -518,8 +571,28 @@ Or all at once:
 ```
 /config         → View current configuration
 /config projects → Edit project list
-/mapping        → Re-run if template changes
+/mapping        → Re-run if template changes (syncs EXPECTED_SHAPE_POSITIONS)
 ```
+
+### Template Changes Workflow
+
+When the PPT template is modified:
+
+1. **Run `/mapping`** - This will:
+   - Verify current template compatibility
+   - Analyze new shape positions
+   - Update `EXPECTED_SHAPE_POSITIONS` in `generate_ppt.py`
+   - Update field mappings if needed
+
+2. **Or manually**:
+   ```bash
+   python3 scripts/generate_ppt.py --analyze   # See new positions
+   python3 scripts/generate_ppt.py --verify    # Test compatibility
+   ```
+
+3. **Update script** if positions changed significantly:
+   - Edit `EXPECTED_SHAPE_POSITIONS` constant
+   - Edit position arguments in `populate_project_slide()` function
 
 ---
 

@@ -2,7 +2,51 @@
 
 Generate a PowerPoint presentation using python-pptx for programmatic control.
 
+## Output Structure (per spec section 5.1)
+
+| Slide | Content |
+|-------|---------|
+| 1 | **Summary** - List of all projects with mood/status |
+| 2 to N | **Project slides** - One slide per project with details |
+| Last | **Data Notes** - List of unfilled fields and API limitations |
+
+## Script Commands
+
+```bash
+# Generate PPT (includes automatic template verification)
+python3 scripts/generate_ppt.py
+
+# Verify template compatibility only
+python3 scripts/generate_ppt.py --verify
+
+# Analyze template and show all shape positions
+python3 scripts/generate_ppt.py --analyze
+```
+
 ## Instructions
+
+### Phase 0: Template Verification (AUTOMATIC)
+
+The script **automatically verifies** the template before generating:
+
+1. Checks shape positions against `EXPECTED_SHAPE_POSITIONS` constant
+2. Reports warnings if shapes have moved or are missing
+3. Continues generating even if some shapes don't match (with warning)
+
+**Success output:**
+```
+Verifying template compatibility...
+✓ Template verified OK
+```
+
+**If verification fails:**
+```
+⚠️  Template may have changed! Only 60% of expected shapes found.
+   Run: python3 scripts/generate_ppt.py --analyze
+   Then update EXPECTED_SHAPE_POSITIONS in the script.
+```
+
+**To fix template sync issues:** Run `/mapping` which will analyze the template and update `EXPECTED_SHAPE_POSITIONS` automatically.
 
 ### Phase 1: Load Data
 
@@ -14,162 +58,192 @@ Generate a PowerPoint presentation using python-pptx for programmatic control.
    - Read `config/mapping.json`
    - Identify fields and their sources/transforms
 
-3. **Load Template (if available)**
-   - Check `templates/` for reference PPTX
-   - Use as basis for slide layouts and styling
+3. **Load Template**
+   - Check `templates/` for PPTX file
+   - **CRITICAL:** Template is the source of truth for styling
 
 4. **Load Reference Data**
    - Extract moods, statuses, risks from fetched data
    - Build lookup tables for label resolution
 
-### Phase 2: Setup python-pptx
+### Phase 2: Template Analysis (CRITICAL)
 
-1. **Verify Installation**
-   ```bash
-   pip install python-pptx
-   ```
+**Before generating, ALWAYS analyze the current template to extract:**
 
-2. **Create Python Script**
-   Create a script in `scripts/` or execute directly:
-
+1. **Slide Dimensions**
    ```python
-   from pptx import Presentation
-   from pptx.util import Inches, Pt
-   from pptx.dml.color import RgbColor
-   from pptx.enum.text import PP_ALIGN
-   import json
-   from datetime import datetime
+   prs = Presentation(template_path)
+   width = prs.slide_width.inches
+   height = prs.slide_height.inches
    ```
 
-### Phase 3: Generate Presentation
-
-1. **Create Presentation Object**
+2. **Shape Positions and Sizes**
    ```python
-   # Use template if available, otherwise blank
-   if template_path:
-       prs = Presentation(template_path)
-   else:
-       prs = Presentation()
-       prs.slide_width = Inches(13.333)  # 16:9
-       prs.slide_height = Inches(7.5)
+   for slide_idx, slide in enumerate(prs.slides):
+       print(f"Slide {slide_idx}:")
+       for shape in slide.shapes:
+           x = round(shape.left.inches, 2)
+           y = round(shape.top.inches, 2)
+           w = round(shape.width.inches, 2)
+           h = round(shape.height.inches, 2)
+           print(f"  {shape.name}: pos=({x}, {y}) size={w}x{h}")
+           if shape.has_text_frame:
+               print(f"    Text: '{shape.text[:50]}...'")
    ```
 
-2. **Add Summary Slide**
+3. **Available Layouts**
    ```python
-   slide_layout = prs.slide_layouts[5]  # Blank or Title
-   slide = prs.slides.add_slide(slide_layout)
-
-   # Add title
-   title = slide.shapes.title
-   title.text = "Portfolio Flash Report"
-
-   # Add date
-   # Add project table with status/mood
+   for i, layout in enumerate(prs.slide_layouts):
+       print(f"Layout {i}: {layout.name}")
    ```
 
-3. **Add Per-Project Slides**
-   For each project, following mapping.json structure:
+4. **Images and Visual Elements**
+   - Count images per slide
+   - Note shape types (pictures, shapes with fills, etc.)
 
-   **Project Card Slide:**
-   ```python
-   slide = prs.slides.add_slide(slide_layout)
-   # Add project name as title
-   # Add status, mood, risk indicators
-   # Add owner, program info
-   # Add budget, timeline
-   # Add achievements/goals
-   ```
+### Phase 3: Template Preservation Rules
 
-   **Progress Slide:**
-   ```python
-   slide = prs.slides.add_slide(slide_layout)
-   # Add completion percentage
-   # Add milestones timeline
-   # Add KPIs
-   ```
+**MANDATORY: When working with templates, preserve ALL visual elements:**
 
-   **Planning Slide:**
-   ```python
-   slide = prs.slides.add_slide(slide_layout)
-   # Add team efforts table
-   # Add decisions list
-   # Add attention points
-   ```
+#### 1. Duplicate Slides via XML (not add_slide)
+```python
+def duplicate_slide(prs, slide_index):
+    """Clone a slide preserving ALL content: images, borders, colors, fonts."""
+    from copy import deepcopy
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 
-4. **Add Data Notes Slide**
-   ```python
-   slide = prs.slides.add_slide(slide_layout)
-   # Title: "Data Notes"
-   # List unfilled fields
-   ```
+    source_slide = prs.slides[slide_index]
+    slide_layout = source_slide.slide_layout
+    new_slide = prs.slides.add_slide(slide_layout)
 
-5. **Apply Transforms**
-   Implement transform functions:
-   ```python
-   def resolve_status_label(code, statuses):
-       return next((s['label'] for s in statuses if s['code'] == code), code)
+    # Remove default shapes from new slide
+    spTree = new_slide.shapes._spTree
+    shapes_to_remove = []
+    for child in spTree:
+        tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+        if tag in ['sp', 'pic', 'graphicFrame', 'grpSp', 'cxnSp']:
+            shapes_to_remove.append(child)
+    for shape_el in shapes_to_remove:
+        spTree.remove(shape_el)
 
-   def format_date(iso_date):
-       if not iso_date:
-           return ""
-       return datetime.fromisoformat(iso_date).strftime("%d/%m/%Y")
+    # Copy ALL shapes from source (includes images, styled shapes, etc.)
+    source_spTree = source_slide.shapes._spTree
+    for child in source_spTree:
+        tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+        if tag in ['sp', 'pic', 'graphicFrame', 'grpSp', 'cxnSp']:
+            new_el = deepcopy(child)
+            spTree.append(new_el)
 
-   def calculate_completion(milestones):
-       if not milestones:
-           return ""
-       completed = sum(1 for m in milestones if m.get('is_completed'))
-       return f"{int(completed / len(milestones) * 100)}%"
-   ```
+    # Copy image relationships
+    for rel in source_slide.part.rels.values():
+        if rel.reltype == RT.IMAGE:
+            new_slide.part.relate_to(rel._target, RT.IMAGE)
 
-### Phase 4: Save and Report
+    return new_slide
+```
 
-1. **Save Presentation**
-   ```python
-   output_path = f"outputs/{datetime.now().strftime('%Y-%m-%d')}_portfolio_skill.pptx"
-   prs.save(output_path)
-   ```
+#### 2. Find Shapes by Position (names change after duplication)
+```python
+def find_shape_by_pos(slide, target_x, target_y, tolerance=0.15):
+    """Find shape by position using Euclidean distance."""
+    best_match = None
+    best_distance = float('inf')
 
-2. **Report Results**
-   ```
-   PPT Generated Successfully!
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            x = round(shape.left.inches, 1)
+            y = round(shape.top.inches, 1)
+            dist = ((x - target_x) ** 2 + (y - target_y) ** 2) ** 0.5
+            if dist <= tolerance and dist < best_distance:
+                best_match = shape
+                best_distance = dist
 
-   Output: outputs/{date}_portfolio_skill.pptx
-   Projects: {count}
-   Slides: {total_slides}
+    return best_match
+```
 
-   Unfilled Fields:
-   - {field1} in {project1}
-   - {field2} in {project2}
-   ```
+#### 3. Delete Placeholders Entirely (not just clear text)
+```python
+def delete_placeholder_shapes(slide):
+    """Remove placeholder shapes completely to avoid 'Double click to edit'."""
+    shapes_to_delete = [s for s in slide.shapes if s.is_placeholder]
+    for shape in shapes_to_delete:
+        sp = shape._element
+        sp.getparent().remove(sp)
+```
+
+#### 4. Handle Section Titles in Template Background
+If template has visual titles (not in text shapes), add leading newline:
+```python
+# For shapes where visual title exists above the text area
+set_shape_text(shape, "\n" + content, font_size=FONT_SIZE)
+```
+
+### Phase 4: Font Size Guidelines
+
+Use smaller fonts for dense content:
+
+| Element | Recommended Size |
+|---------|------------------|
+| Slide title | 14-20pt |
+| Section headers | 10-12pt |
+| Body content | 8-10pt |
+| Table content | 7-8pt |
+| Date/metadata | 8pt |
+| Dense notes | 6-7pt |
+
+**Always test that text fits within shape bounds.**
+
+### Phase 5: API Field Names (CRITICAL)
+
+Always use these exact field names from the API:
+
+| Purpose | Correct Field | WRONG (don't use) |
+|---------|---------------|-------------------|
+| Budget BAC | `budget_capex_initial` | budget_capex |
+| Budget Actual | `budget_capex_used` | budget_actual |
+| Budget EAC | `budget_capex_landing` | budget_eac |
+| Milestone done | `status == 'done'` | is_completed |
+| Effort planned | `effort` | effort_planned |
+| Effort used | `effort_used` | effort_actual |
+
+### Phase 6: Generate and Save
+
+```python
+output_path = f"outputs/{datetime.now().strftime('%Y-%m-%d')}_portfolio_skill.pptx"
+prs.save(output_path)
+```
+
+## Using the Script Directly
+
+```bash
+python3 scripts/generate_ppt.py
+```
+
+---
 
 ## Styling Guidelines
 
 ### Colors (match AirSaas theme)
 ```python
-COLORS = {
-    'primary': RgbColor(0x00, 0x72, 0xC6),    # Blue
-    'success': RgbColor(0x28, 0xA7, 0x45),    # Green
-    'warning': RgbColor(0xFF, 0xC1, 0x07),    # Yellow
-    'danger': RgbColor(0xDC, 0x35, 0x45),     # Red
-    'text': RgbColor(0x33, 0x33, 0x33),       # Dark gray
+MOOD_COLORS = {
+    'good': RGBColor(0x03, 0xE2, 0x6B),       # Green
+    'issues': RGBColor(0xFF, 0xD4, 0x3B),     # Yellow
+    'complicated': RGBColor(0xFF, 0x92, 0x2B), # Orange
+    'blocked': RGBColor(0xFF, 0x0A, 0x55),    # Red
 }
 ```
 
-### Fonts
+### Mood Labels (French)
 ```python
-FONTS = {
-    'title': ('Calibri', Pt(28)),
-    'heading': ('Calibri', Pt(20)),
-    'body': ('Calibri', Pt(14)),
-    'small': ('Calibri', Pt(11)),
+MOOD_LABELS = {
+    'good': 'Tout va bien',
+    'issues': 'Quelques problèmes',
+    'complicated': "C'est compliqué",
+    'blocked': 'Bloqué',
 }
 ```
 
-### Layout
-- Margins: 0.5 inches
-- Title at top
-- Content area below
-- Tables: full width with headers
+---
 
 ## Error Handling
 
@@ -177,3 +251,24 @@ FONTS = {
 - Handle missing data gracefully (empty placeholders)
 - Validate data types before formatting
 - Catch and report python-pptx exceptions
+
+---
+
+## Checklist Before Generating
+
+- [ ] Template verification passes (`--verify` shows OK)
+- [ ] `EXPECTED_SHAPE_POSITIONS` matches current template
+- [ ] Using `duplicate_slide()` for project slides
+- [ ] Deleting placeholders on Summary/Data Notes
+- [ ] Using correct API field names
+- [ ] Font sizes appropriate for content density
+- [ ] Leading newlines where template has visual titles
+
+## Template Sync Workflow
+
+When template changes:
+
+1. **Run analysis**: `python3 scripts/generate_ppt.py --analyze`
+2. **Run `/mapping`**: This updates `EXPECTED_SHAPE_POSITIONS` and field mappings
+3. **Verify**: `python3 scripts/generate_ppt.py --verify`
+4. **Generate**: `/ppt-skill` or `python3 scripts/generate_ppt.py`

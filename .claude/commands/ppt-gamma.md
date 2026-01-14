@@ -4,6 +4,37 @@ Generate a PowerPoint presentation using the Gamma API (AI-powered design).
 
 ## Instructions
 
+### Phase 0: Load Environment Variables (CRITICAL)
+
+**IMPORTANT:** Read `.env` file directly without using external modules like `dotenv`.
+
+Use this Python function to load environment variables:
+
+```python
+def load_env(filepath):
+    """Load environment variables from .env file without external dependencies."""
+    env_vars = {}
+    with open(filepath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip()
+    return env_vars
+
+# Load from project root
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env = load_env(os.path.join(BASE_DIR, '.env'))
+
+GAMMA_API_KEY = env.get('GAMMA_API_KEY')
+GAMMA_BASE_URL = env.get('GAMMA_BASE_URL', 'https://public-api.gamma.app/v1.0')
+```
+
+**Required variables from `.env`:**
+- `GAMMA_API_KEY` - Bearer token for Gamma API
+- `GAMMA_BASE_URL` - API base URL (default: `https://public-api.gamma.app/v1.0`)
+
 ### Phase 1: Load Data
 
 1. **Find Latest Fetched Data**
