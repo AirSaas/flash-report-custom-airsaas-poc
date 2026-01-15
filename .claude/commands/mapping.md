@@ -4,6 +4,20 @@ Map AirSaas API fields to PPT template placeholders through interactive conversa
 
 **IMPORTANT:** This command MUST be interactive. DO NOT just display the current mapping status. You MUST follow each phase and ASK the user questions using the AskUserQuestion tool.
 
+## Key Features
+
+### Visual Layout Awareness
+The template has **section titles in the slide layout** (not in content shapes). The mapping system now:
+- Tracks layout title positions separately from content areas
+- Preserves proper spacing between titles and content
+- Uses bullet points (▪) for list items matching template style
+
+### Paragraph Structure Preservation
+Content shapes support structured paragraphs:
+- **Title paragraphs**: No bullet, bold text (e.g., "Build", "Made :")
+- **Content paragraphs**: With bullets, normal text
+- Automatic bullet formatting using `set_shape_text_with_structure()`
+
 ## Quick Reference - Script Commands
 
 | Command | Purpose |
@@ -286,6 +300,21 @@ For EACH template field, ask the user what data to display:
    - Update `user_preferences` section
    - Update each field in `slides.project_card`
    - Include shape name, position, source, format, and notes
+   - **Add `content_structure` for fields with bullets or inline titles:**
+
+   ```json
+   "content_structure": {
+     "layout_title_above": "SECTION_TITLE",       // Title from layout (if any)
+     "layout_title_position": "(x, y)",           // Position of layout title
+     "content_offset_y": 0.10,                    // Vertical space below title
+     "first_para_is_title": true,                 // If shape has inline title
+     "title_text": "Build",                       // Inline title text
+     "use_bullets": true,                         // Enable bullet formatting
+     "bullet_char": "▪",                          // Bullet character to use
+     "items_as_paragraphs": true,                 // Each item as separate paragraph
+     "max_items": 4                               // Maximum items to display
+   }
+   ```
 
 2. **Update scripts/generate_ppt.py** if positions changed:
    - Update `EXPECTED_SHAPE_POSITIONS` constant
@@ -376,6 +405,189 @@ For EACH template field, ask the user what data to display:
 | Table content | 7-8pt |
 | Date/metadata | 8pt |
 | Dense notes | 6-7pt |
+
+### Content Setting Functions
+
+Use the appropriate function based on content type:
+
+| Function | Use Case | Example |
+|----------|----------|---------|
+| `set_shape_text()` | Simple text without bullets | Title, date, single-line values |
+| `set_shape_text_with_structure()` | Bullet lists, multi-paragraph | SCOPE, NEXT STEPS, BUDGET, MADE |
+
+```python
+# Simple text (no bullets)
+set_shape_text(shape, "Progress: 66%", font_size=9)
+
+# Structured content with bullets
+set_shape_text_with_structure(
+    shape,
+    items=["Item 1", "Item 2", "Item 3"],  # List of strings
+    title_text="Build",                      # Optional inline title (no bullet)
+    font_size=9,
+    use_bullets=True
+)
+```
+
+### Layout vs Shape Titles
+
+The template has two types of section titles:
+
+1. **Layout titles** (in slide layout, not editable):
+   - "SCOPE & MILESTONES", "NEXT STEPS", "BUDGET", etc.
+   - Appear above content shapes
+   - DO NOT write over these - content must appear below them
+
+2. **Shape inline titles** (in content shape, first paragraph):
+   - "Build", "Made :"
+   - Set via `title_text` parameter
+   - Automatically formatted without bullet, bold
+
+### Shape Overlap Handling
+
+**CRITICAL:** Some content shapes physically overlap in the template!
+
+| Overlapping Shapes | Solution |
+|--------------------|----------|
+| 672 + 677 | Use only 672, clear 677 |
+| 674 + 679 | Use only 679, clear 674 |
+
+**Shape 672 (SCOPE & MILESTONES):**
+- Layout title overlaps top 0.16" of shape
+- Use `set_shape_text_with_title_padding()` with `padding_lines=1`
+- First paragraph must be EMPTY
+
+```python
+# Shape with layout title overlap
+set_shape_text_with_title_padding(
+    scope_shape,
+    items=["Milestones: 0/5", "Progress: 66%"],
+    padding_lines=1,  # Empty first line
+    font_size=9,
+    use_bullets=True
+)
+
+# Overlapping shape - CLEAR IT
+set_shape_text(info_shape, '', font_size=9)
+```
+
+### Template Color Palette
+
+Colors are defined in `mapping.json._color_palette`:
+
+| Element | Color | Hex |
+|---------|-------|-----|
+| Section titles | Dark teal | #003D4B |
+| Content text | Black | #000000 |
+| Date background | Gray-teal | #78989F |
+| Mood: good | Green | #03E26B |
+| Mood: issues | Yellow | #FFD43B |
+| Mood: complicated | Orange | #FF922B |
+| Mood: blocked | Red | #FF0A55 |
+| Risk: low | Green | #03E26B |
+| Risk: medium | Yellow | #FFD43B |
+| Risk: high | Red | #FF0A55 |
+
+---
+
+## Style Extraction Rules (CRITICAL)
+
+**IMPORTANT:** The script extracts visual styles from the template at runtime. These rules are defined in `mapping.json._style_extraction_rules` and MUST be updated when the template changes.
+
+### Why Style Extraction?
+
+The script must:
+1. **Extract** font names, sizes, colors, and bullet styles from template shapes
+2. **Apply uniformly** to ALL generated content of the same type
+3. **Never hardcode** visual properties - always read from template
+
+This ensures visual consistency even when templates change.
+
+### Style Types Configuration
+
+Located in `mapping.json._style_extraction_rules.style_types`:
+
+| Style Type | Extract From | Properties | Apply To |
+|------------|--------------|------------|----------|
+| `title` | Shape at (x, y) | font_name, size, color, bold | Slide titles |
+| `date` | Shape at (x, y) | font_name, size, color | Date fields |
+| `status` | Shape at (x, y) | font_name, size, color | Status/mood text |
+| `inline_title` | Multiple positions | font_name, size, color, bold | "Build", "Made :" |
+| `content` | Y positions list | font_name, size, color | Bullet items |
+| `bullet` | First colored bullet | char, color | ALL bullets |
+
+### Configuration Structure
+
+```json
+"_style_extraction_rules": {
+  "style_types": {
+    "title": {
+      "extract_from_position": {"x": 0.39, "y": 0.17},
+      "shape_id": "671",
+      "extract": ["font_name", "font_size", "font_color", "bold"]
+    },
+    "bullet": {
+      "skip_colors": ["000000", "FFFFFF"],
+      "note": "Takes first non-black/white bullet color"
+    },
+    "content": {
+      "extract_from_y_positions": [1.93, 3.16, 4.53, 2.48],
+      "shape_ids": ["672", "673", "679", "680"]
+    }
+  },
+  "defaults": {
+    "font_name": "Lato",
+    "font_size_pt": 9,
+    "bullet_color": "D32427"
+  }
+}
+```
+
+### Application Rules
+
+From `mapping.json._style_extraction_rules.application_rules`:
+
+1. **NEVER hardcode** font names, sizes, or colors in script
+2. **ALWAYS extract** from template at runtime
+3. **Bullet color MUST be uniform** across all slides
+4. **Font family MUST match** template exactly
+5. When template changes, re-extract styles automatically
+
+### When Running /mapping
+
+**Phase 0 MUST also:**
+
+1. **Extract bullet color** from template:
+   - Find first shape with non-black/white bullet
+   - Record the color (e.g., `#D32427` for red)
+
+2. **Extract font styles** for each style type:
+   - Title font (from shape 671)
+   - Content font (from bullet shapes)
+   - Date font (from shape 681)
+
+3. **Update `_style_extraction_rules`** in mapping.json:
+   - Update positions if shapes moved
+   - Update defaults if colors changed
+   - Update `skip_colors` if needed
+
+### Example: Updating for New Template
+
+If template changes to use blue bullets (#0066CC):
+
+```json
+"_style_extraction_rules": {
+  "style_types": {
+    "bullet": {
+      "skip_colors": ["000000", "FFFFFF"],
+      "note": "Blue bullets in new template"
+    }
+  },
+  "defaults": {
+    "bullet_color": "0066CC"
+  }
+}
+```
 
 ---
 

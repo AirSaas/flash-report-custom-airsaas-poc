@@ -496,6 +496,49 @@ When working with any PPT template, follow these rules to preserve visual elemen
 3. **Find shapes by position** - Names change after duplication; use Euclidean distance
 4. **Delete placeholders entirely** - On Summary/Data Notes slides (not just clear text)
 5. **Handle visual section titles** - Add leading newline if template has titles in background
+6. **Handle overlapping shapes** - Some shapes physically overlap; use only one and clear the other
+
+### Shape Overlap Handling (CRITICAL)
+
+The ProjectCardAndFollowUp.pptx template has overlapping shapes:
+
+| Overlapping Shapes | Action |
+|--------------------|--------|
+| 672 + 677 | Use 672 for SCOPE content, CLEAR 677 |
+| 674 + 679 | Use 679 for NEXT STEPS, CLEAR 674 |
+
+**Layout Title Overlap (Shape 672):**
+- Layout title "SCOPE & MILESTONES" (Y=1.83-2.09) overlaps shape 672 (Y=1.93)
+- Solution: Use `set_shape_text_with_title_padding()` with `padding_lines=1`
+- First paragraph MUST be empty to push content below title
+
+```python
+# Shape with overlapping layout title
+set_shape_text_with_title_padding(
+    shape,
+    items=["Item 1", "Item 2"],
+    padding_lines=1,  # Empty first line
+    font_size=9,
+    use_bullets=True
+)
+
+# Overlapping shape - CLEAR IT
+set_shape_text(overlapping_shape, '', font_size=9)
+```
+
+### Template Color Palette
+
+Use these colors from `mapping.json._color_palette`:
+
+| Element | Hex Code | Use |
+|---------|----------|-----|
+| Section titles | #003D4B | Layout titles (dark teal) |
+| Content text | #000000 | All body text (black) |
+| Mood: good | #03E26B | Green |
+| Mood: issues | #FFD43B | Yellow |
+| Mood: complicated | #FF922B | Orange |
+| Mood: blocked | #FF0A55 | Red |
+| Risk: low/medium/high | Same as moods | Green/Yellow/Red |
 
 ```python
 # Analyze current template
@@ -519,6 +562,79 @@ for slide in prs.slides:
 | Dense notes | 6-7pt |
 
 **Always analyze template and adjust font sizes to fit content in shapes.**
+
+---
+
+## Template Style Extraction System
+
+**CRITICAL:** The script MUST extract visual styles from the template at runtime and apply them uniformly. This ensures visual consistency when templates change.
+
+### Configuration Location
+
+Style extraction rules are defined in `config/mapping.json` under `_style_extraction_rules`:
+
+```json
+{
+  "_style_extraction_rules": {
+    "style_types": {
+      "title": {"extract_from_position": {"x": 0.39, "y": 0.17}},
+      "bullet": {"skip_colors": ["000000", "FFFFFF"]}
+    },
+    "defaults": {
+      "font_name": "Lato",
+      "bullet_color": "D32427"
+    }
+  }
+}
+```
+
+### Style Types
+
+| Style | Source Shape | Applied To |
+|-------|--------------|------------|
+| `title` | Shape 671 (0.39, 0.17) | Slide titles |
+| `date` | Shape 681 (8.88, 0.08) | Date fields |
+| `status` | Shape 678 (0.39, 0.98) | Status/mood text |
+| `inline_title` | Shapes 676, 675 | "Build", "Made :" |
+| `content` | Shapes 672, 673, 679, 680 | Bullet items |
+| `bullet` | First colored bullet found | ALL bullet points |
+
+### Extraction Process
+
+1. Load rules from `mapping.json._style_extraction_rules`
+2. Scan template slide 0 shapes
+3. Extract font name, size, color, bold from each style type position
+4. Extract bullet character and color (skip black/white)
+5. Store in `TEMPLATE_STYLES` global
+6. Apply defaults from mapping.json if extraction fails
+
+### Script Functions
+
+| Function | Purpose |
+|----------|---------|
+| `load_style_extraction_rules()` | Read rules from mapping.json |
+| `extract_all_template_styles(slide)` | Extract styles from template |
+| `apply_template_style(para, style_type)` | Apply extracted style to paragraph |
+| `_add_bullet(para)` | Add bullet with template color |
+
+### Application Rules
+
+From `mapping.json._style_extraction_rules.application_rules`:
+
+1. **NEVER hardcode** font names, sizes, or colors in script
+2. **ALWAYS extract** from template at runtime
+3. **Bullet color MUST be uniform** across all slides
+4. **Font family MUST match** template exactly
+5. When template changes, styles re-extract automatically
+
+### Updating for New Templates
+
+When the template changes:
+
+1. Run `/mapping` to re-analyze shapes
+2. Update `_style_extraction_rules.style_types` positions if needed
+3. Update `_style_extraction_rules.defaults` if defaults should change
+4. Script will automatically extract new styles on next run
 
 ### Dependencies
 

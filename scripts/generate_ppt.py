@@ -18,22 +18,40 @@ from pptx.dml.color import RGBColor
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_PATH = os.path.join(BASE_DIR, 'templates', 'ProjectCardAndFollowUp.pptx')
 
-# Colors from AirSaas moods
-MOOD_COLORS = {
-    'good': RGBColor(0x03, 0xE2, 0x6B),       # Green
-    'issues': RGBColor(0xFF, 0xD4, 0x3B),     # Yellow
-    'complicated': RGBColor(0xFF, 0x92, 0x2B), # Orange
-    'blocked': RGBColor(0xFF, 0x0A, 0x55),    # Red
+# =============================================================================
+# TEMPLATE COLOR PALETTE (from mapping.json _color_palette)
+# MUST be respected in all generated content
+# =============================================================================
+TEMPLATE_COLORS = {
+    'section_titles': RGBColor(0x00, 0x3D, 0x4B),  # #003D4B - dark teal
+    'content_text': RGBColor(0x00, 0x00, 0x00),    # #000000 - black
+    'date_background': RGBColor(0x78, 0x98, 0x9F), # #78989F - gray-teal
+    'date_text': RGBColor(0xFF, 0xFF, 0xFF),       # #FFFFFF - white
 }
 
-# Status colors
+# Colors from AirSaas moods (matching template palette)
+MOOD_COLORS = {
+    'good': RGBColor(0x03, 0xE2, 0x6B),       # Green - #03E26B
+    'issues': RGBColor(0xFF, 0xD4, 0x3B),     # Yellow - #FFD43B
+    'complicated': RGBColor(0xFF, 0x92, 0x2B), # Orange - #FF922B
+    'blocked': RGBColor(0xFF, 0x0A, 0x55),    # Red - #FF0A55
+}
+
+# Status colors (matching template palette)
 STATUS_COLORS = {
-    'in_progress': RGBColor(0x00, 0x99, 0xFF),  # Blue
+    'in_progress': RGBColor(0x00, 0x99, 0xFF),  # Blue - #0099FF
     'ongoing_sourcing': RGBColor(0x00, 0x99, 0xFF),
-    'finished': RGBColor(0x03, 0xE2, 0x6B),     # Green
+    'finished': RGBColor(0x03, 0xE2, 0x6B),     # Green - #03E26B
     'backlog': RGBColor(0x99, 0x99, 0x99),      # Gray
     'ideation': RGBColor(0xBB, 0x99, 0xFF),     # Purple
     'solution_chosen': RGBColor(0x00, 0xCC, 0xCC), # Teal
+}
+
+# Risk colors (matching template palette)
+RISK_COLORS = {
+    'low': RGBColor(0x03, 0xE2, 0x6B),    # Green - #03E26B
+    'medium': RGBColor(0xFF, 0xD4, 0x3B), # Yellow - #FFD43B
+    'high': RGBColor(0xFF, 0x0A, 0x55),   # Red - #FF0A55
 }
 
 # French labels for moods
@@ -46,6 +64,74 @@ MOOD_LABELS = {
 
 # Track unfilled fields for Data Notes slide
 UNFILLED_FIELDS = []
+
+# =============================================================================
+# TEMPLATE STYLES CACHE
+# Extracted from template elements and applied uniformly to all generated content
+# =============================================================================
+TEMPLATE_STYLES = {
+    'extracted': False,
+
+    # Bullet formatting
+    'bullet': {
+        'char': '▪',
+        'color': None,  # Hex color string e.g., "D32427"
+    },
+
+    # Title style (shape 671 - "Project review :")
+    'title': {
+        'font_name': None,
+        'font_size': None,  # In EMUs
+        'font_color': None,  # Hex color string
+        'bold': None,
+        'italic': None,
+    },
+
+    # Inline title style (e.g., "Build", "Made :")
+    'inline_title': {
+        'font_name': None,
+        'font_size': None,
+        'font_color': None,
+        'bold': True,  # Usually bold
+        'italic': None,
+    },
+
+    # Content/body text style (bullet items)
+    'content': {
+        'font_name': None,
+        'font_size': None,
+        'font_color': None,
+        'bold': False,
+        'italic': None,
+    },
+
+    # Date style (shape 681)
+    'date': {
+        'font_name': None,
+        'font_size': None,
+        'font_color': None,
+        'bold': None,
+    },
+
+    # Status/mood text style (shape 678)
+    'status': {
+        'font_name': None,
+        'font_size': None,
+        'font_color': None,
+        'bold': None,
+    },
+}
+
+# Legacy alias for backward compatibility
+TEMPLATE_BULLET_FORMAT = {
+    'extracted': False,
+    'bullet_char': '▪',
+    'bullet_color': None,
+    'font_name': None,
+    'font_size': None,
+    'font_color': None,
+    'font_bold': False,
+}
 
 # Template shape name mappings (from analysis)
 # Slide 1 shapes and their purpose:
@@ -735,13 +821,16 @@ def find_shape_by_name(slide, name):
     return None
 
 
-def set_shape_text(shape, text, font_size=None):
+def set_shape_text(shape, text, font_size=None, style_type=None):
     """Set text on a shape, completely replacing existing content.
+
+    Applies template styles automatically if style_type is specified.
 
     Args:
         shape: The shape to modify
         text: The text to set
         font_size: Optional font size in points (e.g., 9 for Pt(9))
+        style_type: Optional template style to apply ('title', 'content', 'date', 'status')
     """
     if shape and shape.has_text_frame:
         tf = shape.text_frame
@@ -762,18 +851,527 @@ def set_shape_text(shape, text, font_size=None):
         # This handles newlines as soft returns within the shape
         if tf.paragraphs:
             tf.paragraphs[0].text = text_str
-            # Apply font size if specified
-            if font_size is not None:
+
+            # Apply template style if specified
+            if style_type:
+                apply_template_style(tf.paragraphs[0], style_type, override_size=font_size)
+            elif font_size is not None:
+                # Fallback to just setting font size
                 tf.paragraphs[0].font.size = Pt(font_size)
 
 
+def set_shape_text_with_structure(shape, items, title_text=None, font_size=None, use_bullets=True, style_type='content'):
+    """Set text on a shape preserving paragraph structure and bullets.
+
+    This function properly populates shapes that have multiple paragraphs
+    with bullet points, preserving the template's visual structure.
+    Applies template styles automatically.
+
+    Args:
+        shape: The shape to modify
+        items: List of strings (one per bullet/paragraph) or single string
+        title_text: Optional title for first paragraph (no bullet)
+        font_size: Optional font size in points (overrides template)
+        use_bullets: Whether to format items as bullet list
+        style_type: Template style to apply ('content', 'status', etc.)
+    """
+    if not shape or not shape.has_text_frame:
+        return
+
+    tf = shape.text_frame
+
+    # Convert single string to list of items
+    if isinstance(items, str):
+        items = [line.strip() for line in items.split('\n') if line.strip()]
+
+    # If no items, just set empty or title only
+    if not items and not title_text:
+        set_shape_text(shape, '', font_size)
+        return
+
+    # Clear existing paragraphs except first
+    while len(tf.paragraphs) > 1:
+        p = tf.paragraphs[-1]._p
+        tf._txBody.remove(p)
+
+    # Clear first paragraph
+    if tf.paragraphs:
+        tf.paragraphs[0].clear()
+
+    # Set up content index
+    content_idx = 0
+    para_idx = 0
+
+    # Handle title in first paragraph if specified
+    if title_text:
+        p = tf.paragraphs[0]
+        p.text = title_text
+        # Apply inline_title style from template
+        apply_template_style(p, 'inline_title', override_size=font_size)
+        # Remove bullet from title paragraph
+        _remove_bullet(p)
+        para_idx = 1
+    else:
+        # First item goes in first paragraph
+        if items:
+            p = tf.paragraphs[0]
+            p.text = items[0]
+            # Apply content style from template
+            apply_template_style(p, style_type, override_size=font_size)
+            if use_bullets:
+                _add_bullet(p)
+            content_idx = 1
+            para_idx = 1
+
+    # Add remaining items as new paragraphs
+    for item in items[content_idx:]:
+        p = tf.add_paragraph()
+        p.text = item
+        # Apply content style from template
+        apply_template_style(p, style_type, override_size=font_size)
+        if use_bullets:
+            _add_bullet(p)
+
+
+def _extract_font_color_from_run(run):
+    """Extract font color from a run element."""
+    try:
+        from pptx.oxml.ns import qn
+        rPr = run._r.find(qn('a:rPr'))
+        if rPr is not None:
+            solidFill = rPr.find(qn('a:solidFill'))
+            if solidFill is not None:
+                srgbClr = solidFill.find(qn('a:srgbClr'))
+                if srgbClr is not None:
+                    return srgbClr.get('val')
+    except:
+        pass
+    return None
+
+
+def _extract_paragraph_style(para, style_dict):
+    """Extract font style from a paragraph into a style dictionary."""
+    if para.runs:
+        run = para.runs[0]
+        if run.font.size:
+            style_dict['font_size'] = run.font.size
+        if run.font.name:
+            style_dict['font_name'] = run.font.name
+        if run.font.bold is not None:
+            style_dict['bold'] = run.font.bold
+        if run.font.italic is not None:
+            style_dict['italic'] = run.font.italic
+
+        # Extract font color
+        color = _extract_font_color_from_run(run)
+        if color:
+            style_dict['font_color'] = color
+
+
+def load_style_extraction_rules():
+    """Load style extraction rules from mapping.json.
+
+    Returns the rules dict or defaults if file not found.
+    """
+    mapping_path = os.path.join(BASE_DIR, 'config', 'mapping.json')
+    try:
+        with open(mapping_path, 'r', encoding='utf-8') as f:
+            mapping = json.load(f)
+            rules = mapping.get('_style_extraction_rules', {})
+            if rules:
+                return rules
+    except Exception as e:
+        print(f"  [Warning] Could not load style rules from mapping.json: {e}")
+
+    # Return default rules
+    return {
+        'style_types': {
+            'title': {'extract_from_position': {'x': 0.39, 'y': 0.17}},
+            'date': {'extract_from_position': {'x': 8.88, 'y': 0.08}},
+            'status': {'extract_from_position': {'x': 0.39, 'y': 0.98}},
+            'inline_title': {'extract_from_positions': [
+                {'x': 5.14, 'y': 1.0},
+                {'x': 5.13, 'y': 4.4}
+            ]},
+            'content': {'extract_from_y_positions': [1.93, 3.16, 4.53, 2.48]},
+            'bullet': {'skip_colors': ['000000', 'FFFFFF']}
+        },
+        'defaults': {
+            'font_name': 'Lato',
+            'font_size_pt': 9,
+            'font_color': '000000',
+            'bullet_char': '▪',
+            'bullet_color': 'D32427'
+        }
+    }
+
+
+def extract_all_template_styles(slide):
+    """Extract all visual styles from the template slide.
+
+    Reads extraction rules from mapping.json._style_extraction_rules
+    to determine which shapes to extract styles from.
+
+    This captures styles for:
+    - Title, Date, Status (by position from mapping)
+    - Inline titles ("Build", "Made :")
+    - Content/bullet items
+    - Bullet formatting (character, color)
+
+    These styles are then applied uniformly to all generated content.
+    """
+    global TEMPLATE_STYLES, TEMPLATE_BULLET_FORMAT
+
+    if TEMPLATE_STYLES['extracted']:
+        return
+
+    from pptx.oxml.ns import qn
+
+    # Load rules from mapping.json
+    rules = load_style_extraction_rules()
+    style_types = rules.get('style_types', {})
+    defaults = rules.get('defaults', {})
+
+    print("  Scanning template shapes for styles (rules from mapping.json)...")
+
+    # Build shape_purposes map from rules
+    shape_purposes = {}
+
+    # Single position extractions
+    for style_name in ['title', 'date', 'status']:
+        if style_name in style_types:
+            pos = style_types[style_name].get('extract_from_position', {})
+            if pos:
+                shape_purposes[(pos.get('x', 0), pos.get('y', 0))] = style_name
+
+    # Multiple position extractions (inline_title)
+    if 'inline_title' in style_types:
+        positions = style_types['inline_title'].get('extract_from_positions', [])
+        for pos in positions:
+            shape_purposes[(pos.get('x', 0), pos.get('y', 0))] = 'inline_title'
+
+    # Content shapes (by Y position)
+    bullet_shapes_y = style_types.get('content', {}).get('extract_from_y_positions', [1.93, 3.16, 4.53, 2.48])
+
+    # Bullet skip colors
+    bullet_skip_colors = style_types.get('bullet', {}).get('skip_colors', ['000000', 'FFFFFF'])
+
+    for shape in slide.shapes:
+        if not shape.has_text_frame:
+            continue
+
+        # Get shape position
+        x = shape.left / 914400  # EMUs to inches
+        y = shape.top / 914400
+
+        tf = shape.text_frame
+        if not tf.paragraphs:
+            continue
+
+        # Check if this shape matches a known purpose by position
+        shape_purpose = None
+        for (px, py), purpose in shape_purposes.items():
+            if abs(x - px) < 0.1 and abs(y - py) < 0.1:
+                shape_purpose = purpose
+                break
+
+        # Extract styles based on shape purpose
+        for para in tf.paragraphs:
+            # Check for bullet formatting first
+            try:
+                pPr = para._p.find(qn('a:pPr'))
+                if pPr is not None:
+                    # Look for bullet character (only capture first one)
+                    if TEMPLATE_STYLES['bullet']['char'] == '▪':  # Default value
+                        buChar = pPr.find(qn('a:buChar'))
+                        if buChar is not None:
+                            char = buChar.get('char')
+                            if char:
+                                TEMPLATE_STYLES['bullet']['char'] = char
+                                TEMPLATE_BULLET_FORMAT['bullet_char'] = char
+
+                    # Look for bullet color (only capture first non-skipped color)
+                    # Skip colors are defined in mapping.json._style_extraction_rules.style_types.bullet.skip_colors
+                    buClr = pPr.find(qn('a:buClr'))
+                    if buClr is not None:
+                        srgbClr = buClr.find(qn('a:srgbClr'))
+                        if srgbClr is not None:
+                            val = srgbClr.get('val')
+                            # Skip colors from mapping rules (default: black, white)
+                            skip_colors_upper = [c.upper() for c in bullet_skip_colors]
+                            if val and val.upper() not in skip_colors_upper:
+                                if TEMPLATE_STYLES['bullet']['color'] is None:
+                                    TEMPLATE_STYLES['bullet']['color'] = val
+                                    TEMPLATE_BULLET_FORMAT['bullet_color'] = val
+                                    print(f"    Bullet color: #{val} (captured)")
+            except:
+                pass
+
+            # Extract font style based on shape purpose
+            if shape_purpose == 'title' and TEMPLATE_STYLES['title']['font_size'] is None:
+                _extract_paragraph_style(para, TEMPLATE_STYLES['title'])
+                if TEMPLATE_STYLES['title']['font_size']:
+                    size_pt = TEMPLATE_STYLES['title']['font_size'].pt if hasattr(TEMPLATE_STYLES['title']['font_size'], 'pt') else TEMPLATE_STYLES['title']['font_size'] / 12700
+                    print(f"    Title: {TEMPLATE_STYLES['title']['font_name']}, {size_pt:.0f}pt, color=#{TEMPLATE_STYLES['title']['font_color']}")
+
+            elif shape_purpose == 'date' and TEMPLATE_STYLES['date']['font_size'] is None:
+                _extract_paragraph_style(para, TEMPLATE_STYLES['date'])
+                if TEMPLATE_STYLES['date']['font_size']:
+                    print(f"    Date style extracted")
+
+            elif shape_purpose == 'status' and TEMPLATE_STYLES['status']['font_size'] is None:
+                _extract_paragraph_style(para, TEMPLATE_STYLES['status'])
+                if TEMPLATE_STYLES['status']['font_size']:
+                    print(f"    Status style extracted")
+
+            elif shape_purpose == 'inline_title':
+                # First paragraph is usually the inline title
+                if para == tf.paragraphs[0] and TEMPLATE_STYLES['inline_title']['font_size'] is None:
+                    _extract_paragraph_style(para, TEMPLATE_STYLES['inline_title'])
+                    if TEMPLATE_STYLES['inline_title']['font_size']:
+                        print(f"    Inline title style extracted")
+                # Second paragraph would be content
+                elif para != tf.paragraphs[0] and TEMPLATE_STYLES['content']['font_size'] is None:
+                    _extract_paragraph_style(para, TEMPLATE_STYLES['content'])
+
+            # Check if this is a bullet content shape
+            elif any(abs(y - by) < 0.1 for by in bullet_shapes_y):
+                if TEMPLATE_STYLES['content']['font_size'] is None:
+                    _extract_paragraph_style(para, TEMPLATE_STYLES['content'])
+                    if TEMPLATE_STYLES['content']['font_size']:
+                        size_pt = TEMPLATE_STYLES['content']['font_size'].pt if hasattr(TEMPLATE_STYLES['content']['font_size'], 'pt') else TEMPLATE_STYLES['content']['font_size'] / 12700
+                        print(f"    Content: {TEMPLATE_STYLES['content']['font_name']}, {size_pt:.0f}pt, color=#{TEMPLATE_STYLES['content']['font_color']}")
+
+    # Apply defaults from mapping.json for any styles not extracted
+    if TEMPLATE_STYLES['bullet']['color'] is None:
+        TEMPLATE_STYLES['bullet']['color'] = defaults.get('bullet_color', 'D32427')
+        TEMPLATE_BULLET_FORMAT['bullet_color'] = TEMPLATE_STYLES['bullet']['color']
+        print(f"    [Default] Bullet color: #{TEMPLATE_STYLES['bullet']['color']}")
+
+    if TEMPLATE_STYLES['bullet']['char'] == '▪':  # Still default
+        default_char = defaults.get('bullet_char', '▪')
+        TEMPLATE_STYLES['bullet']['char'] = default_char
+        TEMPLATE_BULLET_FORMAT['bullet_char'] = default_char
+
+    if TEMPLATE_STYLES['content']['font_name'] is None:
+        TEMPLATE_STYLES['content']['font_name'] = defaults.get('font_name', 'Lato')
+        print(f"    [Default] Font: {TEMPLATE_STYLES['content']['font_name']}")
+
+    if TEMPLATE_STYLES['content']['font_color'] is None:
+        TEMPLATE_STYLES['content']['font_color'] = defaults.get('font_color', '000000')
+
+    # Mark as extracted and sync legacy format
+    TEMPLATE_STYLES['extracted'] = True
+    TEMPLATE_BULLET_FORMAT['extracted'] = True
+    TEMPLATE_BULLET_FORMAT['font_name'] = TEMPLATE_STYLES['content'].get('font_name')
+    TEMPLATE_BULLET_FORMAT['font_size'] = TEMPLATE_STYLES['content'].get('font_size')
+    TEMPLATE_BULLET_FORMAT['font_color'] = TEMPLATE_STYLES['content'].get('font_color')
+    TEMPLATE_BULLET_FORMAT['font_bold'] = TEMPLATE_STYLES['content'].get('bold', False)
+
+    print(f"  ✓ Template styles extracted (rules from mapping.json)")
+
+
+def apply_template_style(paragraph, style_type='content', override_size=None):
+    """Apply extracted template style to a paragraph.
+
+    Args:
+        paragraph: The paragraph to style
+        style_type: One of 'title', 'inline_title', 'content', 'date', 'status'
+        override_size: Optional font size in points to override template size
+    """
+    global TEMPLATE_STYLES
+
+    if not TEMPLATE_STYLES['extracted']:
+        return
+
+    style = TEMPLATE_STYLES.get(style_type, TEMPLATE_STYLES['content'])
+
+    # Apply font name
+    if style.get('font_name'):
+        paragraph.font.name = style['font_name']
+
+    # Apply font size (override takes precedence)
+    if override_size:
+        paragraph.font.size = Pt(override_size)
+    elif style.get('font_size'):
+        paragraph.font.size = style['font_size']
+
+    # Apply font color
+    if style.get('font_color'):
+        try:
+            color_hex = style['font_color']
+            r = int(color_hex[0:2], 16)
+            g = int(color_hex[2:4], 16)
+            b = int(color_hex[4:6], 16)
+            paragraph.font.color.rgb = RGBColor(r, g, b)
+        except:
+            pass
+
+    # Apply bold/italic
+    if style.get('bold') is not None:
+        paragraph.font.bold = style['bold']
+    if style.get('italic') is not None:
+        paragraph.font.italic = style['italic']
+
+
+def extract_bullet_format_from_shape(shape):
+    """Legacy function - redirects to extract_all_template_styles.
+
+    Kept for backward compatibility. The new extraction is done via
+    extract_all_template_styles() which captures all element styles.
+    """
+    # This function is now a no-op since we use the comprehensive extractor
+    pass
+
+
+def _add_bullet(paragraph, apply_template_style=True):
+    """Add bullet point formatting to a paragraph.
+
+    If template style was extracted, applies the same bullet color and formatting.
+    """
+    global TEMPLATE_BULLET_FORMAT
+
+    try:
+        from pptx.oxml.ns import qn
+        from pptx.oxml import parse_xml
+        from lxml import etree
+
+        pPr = paragraph._p.get_or_add_pPr()
+
+        # Remove any existing bullet settings
+        for child in list(pPr):
+            tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+            if tag.startswith('bu'):
+                pPr.remove(child)
+
+        # Get bullet character from template or default
+        bullet_char = TEMPLATE_BULLET_FORMAT.get('bullet_char', '▪')
+
+        # Add bullet character
+        buChar = parse_xml(
+            f'<a:buChar xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" char="{bullet_char}"/>'
+        )
+        pPr.append(buChar)
+
+        # Apply bullet color if extracted from template
+        if apply_template_style and TEMPLATE_BULLET_FORMAT.get('bullet_color'):
+            color_hex = TEMPLATE_BULLET_FORMAT['bullet_color']
+            buClr = parse_xml(
+                f'<a:buClr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+                f'<a:srgbClr val="{color_hex}"/>'
+                f'</a:buClr>'
+            )
+            pPr.append(buClr)
+
+        # Apply font color to match template bullet style
+        if apply_template_style and TEMPLATE_BULLET_FORMAT.get('font_color'):
+            color_hex = TEMPLATE_BULLET_FORMAT['font_color']
+            try:
+                r = int(color_hex[0:2], 16)
+                g = int(color_hex[2:4], 16)
+                b = int(color_hex[4:6], 16)
+                paragraph.font.color.rgb = RGBColor(r, g, b)
+            except:
+                pass
+
+    except Exception as e:
+        # Fallback: prepend bullet character to text
+        bullet_char = TEMPLATE_BULLET_FORMAT.get('bullet_char', '▪')
+        if not paragraph.text.startswith(bullet_char) and not paragraph.text.startswith('•'):
+            paragraph.text = f'{bullet_char} ' + paragraph.text
+
+
+def _remove_bullet(paragraph):
+    """Remove bullet point formatting from a paragraph."""
+    try:
+        from pptx.oxml.ns import qn
+        from pptx.oxml import parse_xml
+
+        pPr = paragraph._p.get_or_add_pPr()
+
+        # Remove any existing bullet settings
+        for child in list(pPr):
+            tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+            if tag.startswith('bu'):
+                pPr.remove(child)
+
+        # Add buNone to explicitly disable bullets
+        buNone = parse_xml(
+            '<a:buNone xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"/>'
+        )
+        pPr.append(buNone)
+    except Exception:
+        pass  # Silent fail - title will just not have bullet removed
+
+
+def set_shape_text_with_title_padding(shape, items, padding_lines=1, font_size=None, use_bullets=True, style_type='content'):
+    """Set text on a shape with empty padding lines at top.
+
+    Use this when the layout has a title that overlaps the top of the shape.
+    The padding_lines creates empty space so content appears below the title.
+    Applies template styles automatically.
+
+    Args:
+        shape: The shape to modify
+        items: List of strings (one per bullet/paragraph)
+        padding_lines: Number of empty lines at top (default 1)
+        font_size: Optional font size in points (overrides template)
+        use_bullets: Whether to format items as bullet list
+        style_type: Template style to apply ('content', 'status', etc.)
+    """
+    if not shape or not shape.has_text_frame:
+        return
+
+    tf = shape.text_frame
+
+    # Convert single string to list of items
+    if isinstance(items, str):
+        items = [line.strip() for line in items.split('\n') if line.strip()]
+
+    # Clear existing paragraphs except first
+    while len(tf.paragraphs) > 1:
+        p = tf.paragraphs[-1]._p
+        tf._txBody.remove(p)
+
+    # Clear first paragraph
+    if tf.paragraphs:
+        tf.paragraphs[0].clear()
+
+    # Add padding lines (empty paragraphs) first
+    # First paragraph is already there, set it empty
+    p = tf.paragraphs[0]
+    p.text = ""
+    _remove_bullet(p)  # No bullet for empty line
+    if font_size:
+        p.font.size = Pt(font_size)
+
+    # Add additional padding lines if needed
+    for _ in range(padding_lines - 1):
+        p = tf.add_paragraph()
+        p.text = ""
+        _remove_bullet(p)
+        if font_size:
+            p.font.size = Pt(font_size)
+
+    # Now add the actual content items with template styles
+    for item in items:
+        p = tf.add_paragraph()
+        p.text = item
+        # Apply content style from template
+        apply_template_style(p, style_type, override_size=font_size)
+        if use_bullets:
+            _add_bullet(p)
+        else:
+            _remove_bullet(p)
+
+
 def format_date(date_str):
-    """Format date string to dd/mm/yy."""
+    """Format date string to dd/mm/yyyy."""
     if not date_str:
-        return datetime.now().strftime("%d/%m/%y")
+        return datetime.now().strftime("%d/%m/%Y")
     try:
         dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-        return dt.strftime("%d/%m/%y")
+        return dt.strftime("%d/%m/%Y")
     except:
         return date_str
 
@@ -878,23 +1476,26 @@ def populate_project_slide(slide, proj_data, reference_data):
 
     # =========================================================================
     # TITLE - "Project review : {project_name}"
+    # Uses 'title' style from template
     # =========================================================================
     title_shape = find_shape_by_pos(0.39, 0.17)
     if title_shape:
         project_name = project.get('name', 'Unknown Project')
         # Truncate long project names to fit in title area
         title_text = f"Project review : {truncate_text(project_name, 60)}"
-        set_shape_text(title_shape, title_text, font_size=FONT_SIZES['title'])
+        set_shape_text(title_shape, title_text, font_size=FONT_SIZES['title'], style_type='title')
 
     # =========================================================================
-    # DATE
+    # DATE - User preference: dd/mm/yyyy format
+    # Uses 'date' style from template
     # =========================================================================
     date_shape = find_shape_by_pos(8.88, 0.08)
     if date_shape:
-        set_shape_text(date_shape, datetime.now().strftime("%d/%m/%y"), font_size=FONT_SIZES['date'])
+        set_shape_text(date_shape, datetime.now().strftime("%d/%m/%Y"), font_size=FONT_SIZES['date'], style_type='date')
 
     # =========================================================================
     # MOOD/STATUS - User preference: Status + Mood only
+    # Uses 'status' style from template
     # =========================================================================
     mood_shape = find_shape_by_pos(0.39, 0.98)
     if mood_shape:
@@ -907,137 +1508,230 @@ def populate_project_slide(slide, proj_data, reference_data):
 
         comment = f"Status: {status_text}\nMood: {mood_text}"
         fitted_text, font_size = fit_text_to_shape(comment, 'mood_status')
-        set_shape_text(mood_shape, fitted_text, font_size=font_size)
+        set_shape_text(mood_shape, fitted_text, font_size=font_size, style_type='status')
 
     # =========================================================================
-    # SCOPE & MILESTONES - User preference: Fechas + Milestones count
+    # SCOPE & MILESTONES - Shape 672
+    # CRITICAL: Layout title "SCOPE & MILESTONES" overlaps top of this shape!
+    #   - Layout title Y: 1.833" - 2.089"
+    #   - Shape 672 Y: 1.931" - 2.906"
+    #   - OVERLAP: 0.158" (title covers top 0.16" of shape)
+    # SOLUTION: First paragraph must be EMPTY to push content below title
+    # NOTE: Shape 677 (info area) OVERLAPS with 672 - DO NOT USE 677
     # =========================================================================
     scope_shape = find_shape_by_pos(0.35, 1.93)
     if scope_shape:
-        start_date = project.get('start_date', '')
-        end_date = project.get('end_date', '')
         ms_count = len(milestones) if milestones else 0
         completed_ms = len([m for m in milestones if m.get('status') == 'done']) if milestones else 0
+        progress = project.get('progress', 0)
+        start_date = project.get('start_date', '')
+        end_date = project.get('end_date', '')
 
-        scope_text = f"Start: {format_date(start_date)}\nEnd: {format_date(end_date)}\nMilestones: {completed_ms}/{ms_count}"
-        fitted_text, font_size = fit_text_to_shape(scope_text, 'scope')
-        set_shape_text(scope_shape, fitted_text, font_size=font_size)
+        # Build items list - includes dates since we're NOT using shape 677
+        scope_items = [
+            f"Milestones: {completed_ms}/{ms_count}",
+            f"Progress: {progress}%",
+        ]
+        if start_date:
+            scope_items.append(f"Start: {format_date(start_date)}")
+        if end_date:
+            scope_items.append(f"End: {format_date(end_date)}")
+
+        # Use special function with padding for overlapping title
+        set_shape_text_with_title_padding(
+            scope_shape,
+            scope_items,
+            padding_lines=1,  # Empty first line to avoid title overlap
+            font_size=FONT_SIZES['content'],
+            use_bullets=True
+        )
 
     # =========================================================================
-    # INFO AREA - User preference: Leave empty
+    # INFO AREA (Shape 677) - CLEAR IT (overlaps with 672)
+    # This shape overlaps with shape 672 (SCOPE & MILESTONES)
+    # All info is now consolidated into shape 672 above
+    # We must CLEAR this shape to avoid showing template placeholder text
     # =========================================================================
     info_shape = find_shape_by_pos(0.37, 2.15)
     if info_shape:
-        set_shape_text(info_shape, "", font_size=FONT_SIZES['content'])
+        set_shape_text(info_shape, '', font_size=FONT_SIZES['content'])
 
     # =========================================================================
     # ACHIEVEMENTS - User preference: Description del proyecto
-    # Note: Visual title in template background, add leading newline
+    # NOTE: Layout title "DESCRIPTION & EXPECTED BENEFITS" is at (0.47, 0.63)
+    #       Content shape at (0.39, 3.16) - but this area is labeled "PROGRESS" in layout
+    #       Template uses bullet formatting (▪)
     # =========================================================================
     achievements_shape = find_shape_by_pos(0.39, 3.16)
     if achievements_shape:
         desc = project.get('description_text', '')
-        # Use fit_text_to_shape for smart truncation and font sizing
-        fitted_text, font_size = fit_text_to_shape(desc, 'achievements', add_prefix_newline=True)
-        set_shape_text(achievements_shape, fitted_text, font_size=font_size)
+
+        if desc:
+            # Split description into sentences/lines for better bullet display
+            # Limit to 3-4 bullet points for readability
+            desc_lines = []
+            # Split by periods or newlines
+            for sentence in desc.replace('\n', '. ').split('. '):
+                sentence = sentence.strip()
+                if sentence and len(sentence) > 5:
+                    # Truncate long sentences
+                    if len(sentence) > 60:
+                        sentence = sentence[:57] + '...'
+                    desc_lines.append(sentence)
+                    if len(desc_lines) >= 3:  # Max 3 bullet points
+                        break
+
+            if not desc_lines:
+                desc_lines = [truncate_text(desc, 180)]
+
+            set_shape_text_with_structure(
+                achievements_shape,
+                desc_lines,
+                title_text=None,
+                font_size=FONT_SIZES['content'],
+                use_bullets=True
+            )
+        else:
+            set_shape_text_with_structure(
+                achievements_shape,
+                ["No description available"],
+                title_text=None,
+                font_size=FONT_SIZES['content'],
+                use_bullets=True
+            )
 
     # =========================================================================
-    # TRENDS - User preference: Progress trends
+    # TRENDS (Shape 674) - CLEAR IT (overlaps with 679)
+    # This shape overlaps with shape 679 (NEXT STEPS)
+    #   - Shape 674 Y: 4.323" - 5.314"
+    #   - Shape 679 Y: 4.532" - 5.423"
+    # Progress info is now shown in SCOPE section (shape 672)
+    # We must CLEAR this shape to avoid visual conflicts
     # =========================================================================
     trends_shape = find_shape_by_pos(0.39, 4.32)
     if trends_shape:
-        progress = project.get('progress')
-        ms_progress = project.get('milestone_progress')
-
-        trends_lines = []
-        if progress is not None:
-            trends_lines.append(f"Progress: {progress}%")
-        if ms_progress is not None:
-            trends_lines.append(f"Milestone Progress: {ms_progress}%")
-
-        if not trends_lines:
-            trends_lines.append("Progress: N/A")
-
-        trends_text = "\n".join(trends_lines)
-        fitted_text, font_size = fit_text_to_shape(trends_text, 'trends')
-        set_shape_text(trends_shape, fitted_text, font_size=font_size)
+        set_shape_text(trends_shape, '', font_size=FONT_SIZES['content'])
 
     # =========================================================================
-    # NEXT STEPS - User preference: Milestones pendientes
-    # Note: Visual title in template background, add leading newline
+    # NEXT STEPS - User preference: Upcoming decisions
+    # NOTE: Layout title "NEXT STEPS" is at (0.47, 4.14)
+    #       Content shape at (0.39, 4.53) - 0.39" below title
+    #       Template uses bullet formatting (▪)
     # =========================================================================
     next_shape = find_shape_by_pos(0.39, 4.53)
     if next_shape:
-        upcoming = [m for m in milestones if m.get('status') != 'done'] if milestones else []
-        if upcoming:
-            # Use format_bullet_list with proper truncation
-            next_text = format_bullet_list(upcoming, max_items=3, max_chars_per_item=42)
-        elif decisions:
-            next_text = format_bullet_list(decisions, max_items=3, max_chars_per_item=42)
-        else:
-            next_text = "See planning for next steps"
+        next_items = []
 
-        fitted_text, font_size = fit_text_to_shape(next_text, 'next_steps', add_prefix_newline=True)
-        set_shape_text(next_shape, fitted_text, font_size=font_size)
+        # Filter decisions that are not yet taken
+        pending_decisions = [d for d in decisions if d.get('status') not in ['taken', 'actions-done']] if decisions else []
+
+        if pending_decisions:
+            for d in pending_decisions[:3]:
+                title = d.get('title', d.get('name', ''))
+                if title:
+                    next_items.append(truncate_text(title, 45))
+        elif decisions:
+            # Show all decisions if none are pending
+            for d in decisions[:3]:
+                title = d.get('title', d.get('name', ''))
+                if title:
+                    next_items.append(truncate_text(title, 45))
+        else:
+            # Fallback to milestones if no decisions
+            upcoming = [m for m in milestones if m.get('status') != 'done'] if milestones else []
+            if upcoming:
+                for m in upcoming[:3]:
+                    name = m.get('name', '')
+                    if name:
+                        next_items.append(truncate_text(name, 45))
+
+        if not next_items:
+            next_items = ["No pending decisions or milestones"]
+
+        set_shape_text_with_structure(
+            next_shape,
+            next_items,
+            title_text=None,  # No inline title - layout has visual title above
+            font_size=FONT_SIZES['content'],
+            use_bullets=True
+        )
 
     # =========================================================================
     # BUDGET - User preference: BAC + Actual + EAC
+    # NOTE: Template has "Build" as first paragraph (title), then bullet items
+    #       Layout title "BUDGET" is at (5.19, 3.96)
     # =========================================================================
     budget_shape = find_shape_by_pos(5.13, 4.4)
     if budget_shape:
         bac = project.get('budget_capex_initial')
         actual = project.get('budget_capex_used')
         eac = project.get('budget_capex_landing')
-        effort_val = project.get('effort')
-        effort_used_val = project.get('effort_used')
 
-        budget_lines = ["Build"]
-        budget_lines.append(f"BAC: {bac:,.0f} €" if bac is not None else "BAC: N/A")
-        budget_lines.append(f"Actual: {actual:,.0f} €" if actual is not None else "Actual: N/A")
-        budget_lines.append(f"EAC: {eac:,.0f} €" if eac is not None else "EAC: N/A")
-        if effort_val is not None or effort_used_val is not None:
-            effort_str = f"Effort: {effort_val or 'N/A'} j"
-            if effort_used_val is not None:
-                effort_str += f" (used: {effort_used_val} j)"
-            budget_lines.append(effort_str)
+        budget_items = []
+        budget_items.append(f"BAC: {bac:,.0f} €" if bac is not None else "BAC: N/A")
+        budget_items.append(f"Actual: {actual:,.0f} €" if actual is not None else "Actual: N/A")
+        budget_items.append(f"EAC: {eac:,.0f} €" if eac is not None else "EAC: N/A")
 
-        budget_text = "\n".join(budget_lines)
-        fitted_text, font_size = fit_text_to_shape(budget_text, 'budget')
-        set_shape_text(budget_shape, fitted_text, font_size=font_size)
+        set_shape_text_with_structure(
+            budget_shape,
+            budget_items,
+            title_text="Build",  # Template has "Build" as inline title
+            font_size=FONT_SIZES['content'],
+            use_bullets=True
+        )
 
     # =========================================================================
     # MADE - User preference: Milestones completados
+    # NOTE: Template has "Made :" as first paragraph (title), then bullet items
+    #       Layout title "DECISIONS" is at (5.19, 0.69) - but shape shows "Made"
     # =========================================================================
     made_shape = find_shape_by_pos(5.14, 1.0)
     if made_shape:
         completed = [m for m in milestones if m.get('status') == 'done'] if milestones else []
-        if completed:
-            # Use format_bullet_list with proper truncation
-            bullet_text = format_bullet_list(completed, max_items=4, max_chars_per_item=40)
-            made_text = "Made:\n" + bullet_text
-        else:
-            made_text = "Made:\nNo completed milestones yet"
 
-        fitted_text, font_size = fit_text_to_shape(made_text, 'made')
-        set_shape_text(made_shape, fitted_text, font_size=font_size)
+        made_items = []
+        if completed:
+            for m in completed[:4]:
+                name = m.get('name', '')
+                if name:
+                    made_items.append(truncate_text(name, 40))
+
+        if not made_items:
+            made_items = ["No completed milestones yet"]
+
+        set_shape_text_with_structure(
+            made_shape,
+            made_items,
+            title_text="Made :",  # Template has "Made :" as inline title
+            font_size=FONT_SIZES['content'],
+            use_bullets=True
+        )
 
     # =========================================================================
     # RISKS - User preference: Solo Risk Level (no attention points)
+    # NOTE: Layout title "RISKS & STATUS" is at (5.19, 2.13)
+    #       Template uses bullet formatting
     # =========================================================================
     risks_shape = find_shape_by_pos(5.14, 2.48)
     if risks_shape:
         risk_level = resolved.get('risk', project.get('risk', 'Not set'))
-        risks_text = f"Risk Level: {truncate_text(risk_level, 40)}"
 
-        # Optionally add first attention point if exists and fits
+        risks_items = [f"Risk Level: {truncate_text(risk_level, 35)}"]
+
+        # Optionally add attention points if they exist
         if attention_points:
-            first_ap = attention_points[0]
-            ap_title = first_ap.get('title', '')
-            if ap_title:
-                risks_text += f"\n\nAttention: {truncate_text(ap_title, 35)}"
+            for ap in attention_points[:2]:  # Max 2 attention points
+                ap_title = ap.get('title', '')
+                if ap_title:
+                    risks_items.append(truncate_text(ap_title, 40))
 
-        fitted_text, font_size = fit_text_to_shape(risks_text, 'risks')
-        set_shape_text(risks_shape, fitted_text, font_size=font_size)
+        set_shape_text_with_structure(
+            risks_shape,
+            risks_items,
+            title_text=None,
+            font_size=FONT_SIZES['content'],
+            use_bullets=True
+        )
 
 
 def generate_from_template(data_path, output_path):
@@ -1098,6 +1792,19 @@ def generate_from_template(data_path, output_path):
 
     print(f"Template loaded: {len(prs.slides)} slides")
     print(f"Processing {len(projects)} projects...")
+
+    # ==========================================================================
+    # EXTRACT ALL TEMPLATE STYLES
+    # Before modifying any shapes, capture ALL template visual styles
+    # (titles, content, bullets, dates, status) to apply uniformly
+    # ==========================================================================
+    global TEMPLATE_STYLES, TEMPLATE_BULLET_FORMAT
+    TEMPLATE_STYLES['extracted'] = False  # Reset for new generation
+    TEMPLATE_BULLET_FORMAT['extracted'] = False
+
+    print("Extracting template styles...")
+    template_slide = prs.slides[0]
+    extract_all_template_styles(template_slide)
 
     # Delete the Budget and Planning template slides FIRST (index 1 and 2)
     # Do this before any other operations to avoid index confusion

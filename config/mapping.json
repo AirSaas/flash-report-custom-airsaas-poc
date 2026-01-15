@@ -1,6 +1,6 @@
 {
   "_description": "Field mapping from AirSaas API to PPT template placeholders",
-  "_last_updated": "2026-01-14",
+  "_last_updated": "2026-01-15",
   "_template": "ProjectCardAndFollowUp.pptx",
   "_status_values": {
     "ok": "Field successfully mapped to API data",
@@ -9,17 +9,211 @@
     "calculated": "Field derived from other data",
     "disabled": "Field intentionally left empty"
   },
+  "_color_palette": {
+    "_description": "Template color palette - MUST be respected in all generated content",
+    "section_titles": "#003D4B",
+    "content_text": "#000000",
+    "date_background": "#78989F",
+    "date_text": "#FFFFFF",
+    "mood_good": "#03E26B",
+    "mood_issues": "#FFD43B",
+    "mood_complicated": "#FF922B",
+    "mood_blocked": "#FF0A55",
+    "status_in_progress": "#0099FF",
+    "status_finished": "#03E26B",
+    "risk_low": "#03E26B",
+    "risk_medium": "#FFD43B",
+    "risk_high": "#FF0A55"
+  },
+  "_layout_titles": {
+    "_description": "Section titles in slide layout. Content MUST start BELOW y_bottom to avoid overlap.",
+    "DESCRIPTION & EXPECTED BENEFITS": {
+      "y_top": 0.635,
+      "y_bottom": 0.891,
+      "x": 0.47,
+      "affects_shape": "678"
+    },
+    "SCOPE & MILESTONES": {
+      "y_top": 1.833,
+      "y_bottom": 2.089,
+      "x": 0.47,
+      "affects_shape": "672",
+      "note": "Shape 672 starts at 1.93 - OVERLAP of 0.16 inches!"
+    },
+    "PROGRESS": {
+      "y_top": 2.828,
+      "y_bottom": 3.084,
+      "x": 0.47,
+      "affects_shape": "673"
+    },
+    "NEXT STEPS": {
+      "y_top": 4.141,
+      "y_bottom": 4.397,
+      "x": 0.47,
+      "affects_shape": "679"
+    },
+    "DECISIONS": {
+      "y_top": 0.687,
+      "y_bottom": 0.922,
+      "x": 5.19,
+      "affects_shape": "676"
+    },
+    "RISKS & STATUS": {
+      "y_top": 2.127,
+      "y_bottom": 2.383,
+      "x": 5.19,
+      "affects_shape": "680"
+    },
+    "TRENDS": {
+      "y_top": 3.379,
+      "y_bottom": 3.635,
+      "x": 5.20,
+      "affects_shape": null
+    },
+    "BUDGET": {
+      "y_top": 3.957,
+      "y_bottom": 4.213,
+      "x": 5.19,
+      "affects_shape": "675"
+    }
+  },
+  "_content_safe_zones": {
+    "_description": "Safe zones for content - text must fit within these boundaries. Y values account for layout title overlap.",
+    "672": {
+      "purpose": "SCOPE & MILESTONES content",
+      "shape_y_top": 1.931,
+      "layout_title_y_bottom": 2.089,
+      "safe_y_start": 2.10,
+      "safe_height": 0.80,
+      "max_lines": 3,
+      "padding_top_lines": 1,
+      "note": "First line must be empty or very short to avoid title overlap"
+    },
+    "677": {
+      "purpose": "INFO area (dates, deployment)",
+      "shape_y_top": 2.152,
+      "overlaps_with": "672",
+      "safe_y_start": 2.20,
+      "safe_height": 0.70,
+      "max_lines": 3,
+      "note": "This shape overlaps with 672 - use only ONE of them"
+    },
+    "679": {
+      "purpose": "NEXT STEPS content",
+      "shape_y_top": 4.532,
+      "layout_title_y_bottom": 4.397,
+      "safe_y_start": 4.53,
+      "safe_height": 0.89,
+      "max_lines": 3,
+      "note": "Title ends before shape starts - no overlap"
+    }
+  },
+  "_template_structure": {
+    "_description": "Template paragraph and bullet structure for each content shape",
+    "678": {"paragraphs": 3, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": false},
+    "672": {
+      "paragraphs": 2,
+      "has_bullets": true,
+      "bullet_char": "▪",
+      "first_para_is_title": false,
+      "padding_top_required": true,
+      "padding_lines": 1,
+      "note": "MUST have empty first line - layout title overlaps top of shape"
+    },
+    "677": {"paragraphs": 4, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": false, "disabled": true, "note": "DISABLED - overlaps with shape 672"},
+    "673": {"paragraphs": 1, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": false},
+    "674": {"paragraphs": 1, "has_bullets": false, "first_para_is_title": false, "disabled": true, "note": "DISABLED - overlaps with shape 679"},
+    "679": {"paragraphs": 1, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": false},
+    "676": {"paragraphs": 2, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": true, "title_text": "Made :"},
+    "680": {"paragraphs": 2, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": false},
+    "675": {"paragraphs": 5, "has_bullets": true, "bullet_char": "▪", "first_para_is_title": true, "title_text": "Build"}
+  },
+  "_style_extraction_rules": {
+    "_description": "Rules for extracting visual styles from template. Script MUST follow these rules to maintain visual consistency.",
+    "_principle": "Extract styles from template elements and apply uniformly to ALL generated content of the same type.",
+    "extraction_order": [
+      "1. Load template slide 0 (reference slide)",
+      "2. Scan ALL shapes with text frames",
+      "3. Extract styles by shape position (mapped to style_type)",
+      "4. Store extracted styles in memory",
+      "5. Apply stored styles when generating content"
+    ],
+    "style_types": {
+      "title": {
+        "description": "Main slide title style",
+        "extract_from_position": {"x": 0.39, "y": 0.17},
+        "shape_id": "671",
+        "extract": ["font_name", "font_size", "font_color", "bold", "italic"],
+        "apply_to": ["Project review title"]
+      },
+      "date": {
+        "description": "Date display style",
+        "extract_from_position": {"x": 8.88, "y": 0.08},
+        "shape_id": "681",
+        "extract": ["font_name", "font_size", "font_color", "bold"],
+        "apply_to": ["Date field"]
+      },
+      "status": {
+        "description": "Status/mood text style",
+        "extract_from_position": {"x": 0.39, "y": 0.98},
+        "shape_id": "678",
+        "extract": ["font_name", "font_size", "font_color", "bold"],
+        "apply_to": ["Status text", "Mood text"]
+      },
+      "inline_title": {
+        "description": "Inline section titles (Build, Made :)",
+        "extract_from_positions": [
+          {"x": 5.14, "y": 1.0, "shape_id": "676"},
+          {"x": 5.13, "y": 4.4, "shape_id": "675"}
+        ],
+        "extract": ["font_name", "font_size", "font_color", "bold"],
+        "apply_to": ["First paragraph of shapes with inline titles"],
+        "note": "Usually bold, no bullet"
+      },
+      "content": {
+        "description": "Body content / bullet item style",
+        "extract_from_y_positions": [1.93, 3.16, 4.53, 2.48],
+        "shape_ids": ["672", "673", "679", "680"],
+        "extract": ["font_name", "font_size", "font_color", "bold"],
+        "apply_to": ["All bullet items", "Content text"]
+      },
+      "bullet": {
+        "description": "Bullet point formatting",
+        "extract_from": "First shape with non-black/white bullet color",
+        "extract": ["bullet_char", "bullet_color"],
+        "skip_colors": ["000000", "FFFFFF"],
+        "apply_to": ["ALL bullet points in generated content"],
+        "note": "CRITICAL: All bullets must use same color extracted from template"
+      }
+    },
+    "application_rules": [
+      "NEVER hardcode font names, sizes, or colors in script",
+      "ALWAYS extract from template at runtime",
+      "If extraction fails, use sensible defaults but log warning",
+      "Bullet color MUST be uniform across all slides",
+      "Font family MUST match template exactly",
+      "When template changes, re-extract styles automatically"
+    ],
+    "defaults": {
+      "_description": "Fallback values if extraction fails",
+      "font_name": "Lato",
+      "font_size_pt": 9,
+      "font_color": "000000",
+      "bullet_char": "▪",
+      "bullet_color": "D32427"
+    }
+  },
   "user_preferences": {
-    "date_format": "dd/mm/yy",
+    "date_format": "dd/mm/yyyy",
     "budget_display": "BAC + Actual + EAC",
     "mood_status_display": "Status + Mood only",
-    "info_area": "empty",
+    "info_area": "effort_planned_vs_used",
     "achievements": "description_text",
-    "next_steps": "milestones_pending",
+    "next_steps": "upcoming_decisions",
     "risks_display": "risk_level_only",
     "made_display": "milestones_completed",
-    "scope_display": "fechas_milestones_count",
-    "trends_display": "progress_trends"
+    "scope_display": "milestones_count_progress",
+    "trends_display": "progress_only"
   },
   "slides": {
     "summary": {
@@ -31,7 +225,7 @@
       "date": {
         "source": "generated",
         "transform": "current_date",
-        "format": "dd/mm/yy",
+        "format": "dd/mm/yyyy",
         "status": "ok"
       },
       "project_list": {
@@ -51,7 +245,7 @@
       },
       "date": {
         "source": "generated",
-        "format": "dd/mm/yy",
+        "format": "dd/mm/yyyy",
         "position": "(8.88, 0.08)",
         "shape": "Google Shape;681;p1",
         "size": "1.07\" x 0.35\"",
@@ -67,21 +261,31 @@
         "notes": "User chose: Status + Mood only (no owner)"
       },
       "scope_milestones": {
-        "source": ["project.start_date", "project.end_date", "milestones"],
-        "format": "Start: {start}\nEnd: {end}\nMilestones: {completed}/{total}",
+        "source": ["milestones", "project.progress"],
+        "format": "Milestones: {completed}/{total}\nProgress: {progress}%",
         "position": "(0.35, 1.93)",
         "shape": "Google Shape;672;p1",
         "size": "4.57\" x 0.98\"",
         "status": "ok",
-        "notes": "User chose: Fechas + Milestones count"
+        "notes": "User chose: Milestone count + Progress %",
+        "content_structure": {
+          "layout_title_above": "SCOPE & MILESTONES",
+          "layout_title_position": "(0.47, 1.83)",
+          "content_offset_y": 0.10,
+          "use_bullets": true,
+          "bullet_char": "▪",
+          "items_as_paragraphs": true,
+          "max_items": 3
+        }
       },
       "info_area": {
-        "source": null,
+        "source": ["project.effort", "project.effort_used"],
+        "format": "Effort planned: {effort} days\nEffort used: {effort_used} days",
         "position": "(0.37, 2.15)",
         "shape": "Google Shape;677;p1",
         "size": "4.53\" x 0.75\"",
-        "status": "disabled",
-        "notes": "User chose: Leave empty. Deployment area and end users not available in API."
+        "status": "ok",
+        "notes": "User chose: Show effort (planned vs used)"
       },
       "achievements": {
         "source": "project.description_text",
@@ -92,23 +296,32 @@
         "notes": "User chose: Description del proyecto"
       },
       "trends": {
-        "source": ["project.progress", "project.milestone_progress"],
-        "format": "Progress: {progress}%\nMilestone Progress: {ms_progress}%",
+        "source": "project.progress",
+        "format": "Progress: {progress}%",
         "position": "(0.39, 4.32)",
         "shape": "Google Shape;674;p1",
         "size": "4.57\" x 0.99\"",
         "status": "ok",
-        "notes": "User chose: Progress trends"
+        "notes": "User chose: Progress % only"
       },
       "next_steps": {
-        "source": "milestones",
-        "filter": "status != 'done'",
+        "source": "decisions",
+        "filter": "status != 'taken' && status != 'actions-done'",
         "limit": 3,
         "position": "(0.39, 4.53)",
         "shape": "Google Shape;679;p1",
         "size": "4.53\" x 0.89\"",
         "status": "ok",
-        "notes": "User chose: Milestones pendientes"
+        "notes": "User chose: Upcoming decisions",
+        "content_structure": {
+          "layout_title_above": "NEXT STEPS",
+          "layout_title_position": "(0.47, 4.14)",
+          "content_offset_y": 0.39,
+          "use_bullets": true,
+          "bullet_char": "▪",
+          "items_as_paragraphs": true,
+          "max_items": 3
+        }
       },
       "made": {
         "source": "milestones",
@@ -118,7 +331,15 @@
         "shape": "Google Shape;676;p1",
         "size": "4.51\" x 1.19\"",
         "status": "ok",
-        "notes": "User chose: Milestones completados"
+        "notes": "User chose: Milestones completados",
+        "content_structure": {
+          "first_para_is_title": true,
+          "title_text": "Made :",
+          "use_bullets": true,
+          "bullet_char": "▪",
+          "items_as_paragraphs": true,
+          "max_items": 4
+        }
       },
       "risks": {
         "source": "resolved.risk",
@@ -136,7 +357,15 @@
         "shape": "Google Shape;675;p1",
         "size": "4.43\" x 1.15\"",
         "status": "ok",
-        "notes": "User chose: BAC + Actual + EAC"
+        "notes": "User chose: BAC + Actual + EAC",
+        "content_structure": {
+          "first_para_is_title": true,
+          "title_text": "Build",
+          "use_bullets": true,
+          "bullet_char": "▪",
+          "items_as_paragraphs": true,
+          "max_items": 4
+        }
       }
     },
     "project_planning": {
