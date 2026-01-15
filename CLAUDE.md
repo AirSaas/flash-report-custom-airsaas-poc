@@ -351,7 +351,7 @@ On 429 error:
 ### Authentication
 
 ```
-Authorization: Bearer {GAMMA_API_KEY}
+X-API-KEY: {GAMMA_API_KEY}
 ```
 
 ### Creating a Presentation

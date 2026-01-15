@@ -32,7 +32,7 @@ GAMMA_BASE_URL = env.get('GAMMA_BASE_URL', 'https://public-api.gamma.app/v1.0')
 ```
 
 **Required variables from `.env`:**
-- `GAMMA_API_KEY` - Bearer token for Gamma API
+- `GAMMA_API_KEY` - API key for Gamma API
 - `GAMMA_BASE_URL` - API base URL (default: `https://public-api.gamma.app/v1.0`)
 
 ### Phase 1: Load Data
@@ -121,7 +121,7 @@ GAMMA_BASE_URL = env.get('GAMMA_BASE_URL', 'https://public-api.gamma.app/v1.0')
    ```
    POST https://public-api.gamma.app/v1.0/generations
    Headers:
-     Authorization: Bearer {GAMMA_API_KEY}
+     X-API-KEY: {GAMMA_API_KEY}
      Content-Type: application/json
 
    Body:
@@ -188,7 +188,7 @@ GAMMA_BASE_URL = env.get('GAMMA_BASE_URL', 'https://public-api.gamma.app/v1.0')
 
 **Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
 
-**Authentication:** `Authorization: Bearer {API_KEY}`
+**Authentication:** `X-API-KEY: {API_KEY}`
 
 ### Required Parameters
 
