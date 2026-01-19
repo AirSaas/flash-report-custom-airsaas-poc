@@ -318,7 +318,6 @@ flash-report-custom-airsaas-poc/
 │   └── CLAUDE_ERRORS.md         # Error log
 ├── scripts/
 │   ├── generate_ppt.py          # Python PPT generator (python-pptx)
-│   ├── generate_ppt_gamma.py    # Python PPT generator (Gamma API)
 │   └── airsaas_fetcher.gs       # Google Apps Script reference
 └── .claude/commands/            # Slash command definitions
 ```
@@ -390,17 +389,40 @@ These fields are not available in the public API:
 ### Gamma API (Optional)
 
 - **Documentation:** https://developers.gamma.app/docs/getting-started
-- **Primary Endpoint:** `POST https://public-api.gamma.app/v1.0/generations/from-template`
-- **Standard Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
 - **Authentication:** `X-API-KEY: {GAMMA_API_KEY}`
 - **Access:** Pro, Ultra, Teams, or Business plan required
+- **Credits:** ~40 credits per generation
 
-#### Manual Gamma Generation
+#### Endpoints
 
-```bash
-# Run the Gamma generator directly
-python3 scripts/generate_ppt_gamma.py
+| Endpoint | Supports imageOptions | Use Case |
+|----------|----------------------|----------|
+| `/v1.0/generations/from-template` | ❌ NO | Generate from template (primary) |
+| `/v1.0/generations` | ✅ YES | Generate from text |
+| `/v1.0/generations/{id}` | N/A | Poll generation status |
+
+#### from-template Request (VERIFIED)
+
+```json
+{
+  "gammaId": "template-id",
+  "prompt": "Your content...",
+  "exportAs": "pptx"
+}
 ```
+
+⚠️ **DO NOT USE** `imageOptions`, `textMode`, `cardSplit`, `numCards` with `/from-template` endpoint.
+
+#### Gamma Generation
+
+The `/ppt-gamma` command is executed by Claude Code, which:
+1. Loads fetched data from `data/` folder
+2. Builds a markdown prompt dynamically based on `mapping.json`
+3. Calls Gamma API `/generations/from-template` endpoint
+4. Polls for completion every 3 seconds
+5. Downloads and saves the PPTX to `outputs/`
+
+No separate script required - Claude Code handles all steps.
 
 ## License
 

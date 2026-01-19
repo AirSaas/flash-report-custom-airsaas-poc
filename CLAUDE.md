@@ -84,7 +84,6 @@ flash-report-custom-airsaas-poc/
 │   └── CLAUDE_ERRORS.md         # Errors log to avoid repeating
 └── scripts/
     ├── generate_ppt.py          # Python script for PPT generation (python-pptx)
-    ├── generate_ppt_gamma.py    # Python script for PPT generation (Gamma API)
     └── airsaas_fetcher.gs       # Google Apps Script reference
 ```
 
@@ -360,17 +359,25 @@ X-API-KEY: {GAMMA_API_KEY}
 
 **Endpoint:** `POST https://public-api.gamma.app/v1.0/generations/from-template`
 
-**Request:**
+**Request (VERIFIED WORKING):**
 ```json
 {
   "gammaId": "g_9d4wnyvr02om4zk",
   "prompt": "Fill this presentation with project data: ...",
-  "exportAs": "pptx",
-  "imageOptions": {
-    "source": "noImages"
-  }
+  "exportAs": "pptx"
 }
 ```
+
+### CRITICAL: Parameters NOT Supported for from-template
+
+⚠️ **DO NOT USE these parameters with `/generations/from-template`:**
+
+| Parameter | Error | Notes |
+|-----------|-------|-------|
+| `imageOptions` | `imageOptions.property source should not exist` | Not supported |
+| `textMode` | Validation error | Only for standard generation |
+| `cardSplit` | Validation error | Only for standard generation |
+| `numCards` | Validation error | Only for standard generation |
 
 ### Key Parameters (from-template)
 
@@ -380,7 +387,6 @@ X-API-KEY: {GAMMA_API_KEY}
 | `prompt` | Yes | Instructions for content modification (max 100,000 tokens) |
 | `exportAs` | No | `pdf` or `pptx` for download |
 | `themeId` | No | Visual styling override |
-| `imageOptions` | No | Image generation settings |
 
 ### Alternative Method: Standard Generation
 
@@ -416,7 +422,9 @@ X-API-KEY: {GAMMA_API_KEY}
 | `condense` | Large input, summarize it |
 | `preserve` | Keep exact text as-is |
 
-### Additional Options
+### Additional Options (Standard Generation ONLY)
+
+⚠️ **These options are ONLY for `/generations` endpoint, NOT for `/generations/from-template`:**
 
 | Option | Parameters |
 |--------|------------|
@@ -427,21 +435,25 @@ X-API-KEY: {GAMMA_API_KEY}
 
 ### All Gamma Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1.0/generations` | POST | Generate from text |
-| `/v1.0/generations/from-template` | POST | **Generate from template (primary method)** |
-| `/v1.0/themes` | GET | List available themes |
-| `/v1.0/folders` | GET | List folders |
+| Endpoint | Method | Supports imageOptions | Description |
+|----------|--------|----------------------|-------------|
+| `/v1.0/generations` | POST | ✅ YES | Generate from text |
+| `/v1.0/generations/from-template` | POST | ❌ NO | **Generate from template (primary)** |
+| `/v1.0/generations/{id}` | GET | N/A | Poll generation status |
+| `/v1.0/themes` | GET | N/A | List available themes |
+| `/v1.0/folders` | GET | N/A | List folders |
 
-### Response
+### Response & Polling
 
-Response includes `pptxUrl` when `exportAs: "pptx"`. Download immediately as URLs expire.
+1. Initial response returns `generationId`
+2. Poll `GET /generations/{id}` every 3 seconds
+3. Status: `pending` → `completed` or `failed`
+4. On `completed`: download from `exportUrl` immediately (URLs expire)
 
 ### API Access
 
 - Available on Pro, Ultra, Teams, Business plans
-- Credit-based billing
+- Credit-based billing (~40 credits per generation)
 - v0.2 deprecated Jan 16, 2026
 
 **Full reference:** See `.claude/commands/ppt-gamma.md` for complete API documentation.
