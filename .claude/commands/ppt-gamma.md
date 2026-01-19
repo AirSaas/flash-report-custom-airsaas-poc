@@ -1,313 +1,124 @@
 # Generate PPT via Gamma API
 
-Generate a PowerPoint presentation using the Gamma API (AI-powered design).
+Generate a PowerPoint presentation using the Gamma API with a pre-defined template.
 
-## Instructions
+## Quick Start
 
-### Phase 0: Load Environment Variables (CRITICAL)
+Simply run the Python script:
 
-**IMPORTANT:** Read `.env` file directly without using external modules like `dotenv`.
-
-Use this Python function to load environment variables:
-
-```python
-def load_env(filepath):
-    """Load environment variables from .env file without external dependencies."""
-    env_vars = {}
-    with open(filepath, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                env_vars[key.strip()] = value.strip()
-    return env_vars
-
-# Load from project root
-import os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-env = load_env(os.path.join(BASE_DIR, '.env'))
-
-GAMMA_API_KEY = env.get('GAMMA_API_KEY')
-GAMMA_BASE_URL = env.get('GAMMA_BASE_URL', 'https://public-api.gamma.app/v1.0')
+```bash
+python3 scripts/generate_ppt_gamma.py
 ```
 
-**Required variables from `.env`:**
-- `GAMMA_API_KEY` - API key for Gamma API
-- `GAMMA_BASE_URL` - API base URL (default: `https://public-api.gamma.app/v1.0`)
+## What it does
 
-### Phase 1: Load Data
+1. Loads the latest fetched data from `data/{date}_projects.json`
+2. Formats project data into markdown content
+3. Calls Gamma API with the template ID from `.env`
+4. Polls for completion
+5. Downloads the PPTX to `outputs/{date}_portfolio_gamma.pptx`
 
-1. **Find Latest Fetched Data**
-   - Look in `data/` folder for most recent `{date}_projects.json`
-   - If no data found, prompt user to run `/fetch` first
+## Prerequisites
 
-2. **Load Mapping Configuration**
-   - Read `config/mapping.json`
-   - Identify fields and their sources/transforms
-
-3. **Load Reference Data**
-   - Extract moods, statuses, risks from fetched data
-   - Build lookup tables for label resolution
-
-### Phase 2: Prepare Content
-
-1. **Build Summary Slide Content**
-   ```markdown
-   # Portfolio Flash Report
-   **Date:** {current_date}
-
-   | Project | Status | Mood |
-   |---------|--------|------|
-   | {name} | {status_label} | {mood_label} |
-   ...
+1. **Fetched data**: Run `/fetch` first to get project data
+2. **Gamma API key**: Set in `.env` file:
+   ```
+   GAMMA_API_KEY=sk-gamma-xxx
+   GAMMA_TEMPLATE_ID=g_9d4wnyvr02om4zk
    ```
 
-2. **Build Per-Project Slides**
-   For each project, create slides based on mapping.json structure:
+## Configuration
 
-   ```markdown
-   ---
-   # {project_name}
+Environment variables in `.env`:
 
-   **Status:** {status} | **Mood:** {mood} | **Risk:** {risk}
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GAMMA_API_KEY` | Yes | - | Your Gamma API key |
+| `GAMMA_BASE_URL` | No | `https://public-api.gamma.app/v1.0` | API base URL |
+| `GAMMA_TEMPLATE_ID` | No | `g_9d4wnyvr02om4zk` | Template gamma ID |
 
-   **Owner:** {owner}
-   **Program:** {program}
+## Output
 
-   ## Key Information
-   - Budget: {budget}
-   - Timeline: {start_date} - {end_date}
+- **File**: `outputs/{date}_portfolio_gamma.pptx`
+- **Online**: Link to Gamma app for editing
 
-   ## Achievements
-   {goals_formatted}
+## Instructions for Claude
 
-   ---
-   # {project_name} - Progress
+When the user runs `/ppt-gamma`:
 
-   **Completion:** {completion_percent}
-
-   ## Milestones
-   {milestones_formatted}
-
-   ---
-   # {project_name} - Planning
-
-   ## Team Efforts
-   {efforts_table}
-
-   ## Decisions
-   {decisions_list}
-
-   ## Attention Points
-   {attention_points_list}
+1. Execute the script:
+   ```bash
+   python3 scripts/generate_ppt_gamma.py
    ```
 
-3. **Build Data Notes Slide**
-   ```markdown
-   ---
-   # Data Notes
+2. Report the results to the user:
+   - Output file path
+   - Number of projects
+   - Gamma URL for online editing
+   - Credits used/remaining
+   - Any unfilled fields
 
-   The following fields could not be populated:
-   {list_of_unfilled_fields}
-   ```
+---
 
-4. **Track Unfilled Fields**
-   - For each field with status "missing" or empty data
-   - Add to unfilled list with project context
+## Gamma API Reference (for manual troubleshooting)
 
-### Phase 3: Call Gamma API (v1.0)
-
-1. **Prepare API Request**
-   ```
-   POST https://public-api.gamma.app/v1.0/generations
-   Headers:
-     X-API-KEY: {GAMMA_API_KEY}
-     Content-Type: application/json
-
-   Body:
-   {
-     "inputText": "{full_markdown_content}",
-     "textMode": "preserve",
-     "format": "presentation",
-     "numCards": 10,
-     "cardSplit": "inputTextBreaks",
-     "exportAs": "pptx",
-     "textOptions": {
-       "amount": "medium",
-       "language": "fr"
-     },
-     "cardOptions": {
-       "dimensions": "16x9"
-     },
-     "imageOptions": {
-       "source": "noImages"
-     }
-   }
-   ```
-
-2. **Key Parameters Explained**
-   | Parameter | Value | Why |
-   |-----------|-------|-----|
-   | `textMode` | `preserve` | Keep exact text from inputText |
-   | `format` | `presentation` | Generate slides |
-   | `cardSplit` | `inputTextBreaks` | Use `---` as slide breaks |
-   | `exportAs` | `pptx` | Get downloadable PPTX |
-   | `cardOptions.dimensions` | `16x9` | Standard presentation ratio |
-   | `imageOptions.source` | `noImages` | No AI images (use template style) |
-
-3. **Response Handling**
-   - Response includes `url` to the generated gamma
-   - If `exportAs: "pptx"`, response includes `pptxUrl` for download
-   - Download URLs expire after some time - save immediately
-
-4. **Download PPTX**
-   - Fetch the PPTX from `pptxUrl` in response
-   - Save to `outputs/{date}_portfolio_gamma.pptx`
-
-### Phase 4: Report Results
-
-1. **Success Output**
-   ```
-   PPT Generated Successfully!
-
-   Output: outputs/{date}_portfolio_gamma.pptx
-   Projects: {count}
-   Slides: {total_slides}
-
-   Unfilled Fields:
-   - {field1} in {project1}
-   - {field2} in {project2}
-   ```
-
-2. **Error Handling**
-   - Log errors to `tracking/CLAUDE_ERRORS.md`
-   - Report what went wrong
-   - Suggest fixes
-
-## Gamma API v1.0 Reference
-
-**Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
-
-**Authentication:** `X-API-KEY: {API_KEY}`
-
-### Required Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `inputText` | string | Content to generate (max 100,000 tokens) |
-| `textMode` | string | `generate`, `condense`, or `preserve` |
-
-### Optional Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `format` | string | `presentation` | `presentation`, `document`, `social`, `webpage` |
-| `numCards` | integer | 10 | Number of slides (1-60 Pro, 1-75 Ultra) |
-| `cardSplit` | string | `auto` | `auto` or `inputTextBreaks` (use `---`) |
-| `exportAs` | string | - | `pdf` or `pptx` |
-| `themeId` | string | workspace default | Theme ID from List Themes API |
-| `additionalInstructions` | string | - | Extra instructions (1-2000 chars) |
-
-### textOptions
-
-| Parameter | Type | Default | Values |
-|-----------|------|---------|--------|
-| `amount` | string | `medium` | `brief`, `medium`, `detailed`, `extensive` |
-| `tone` | string | - | Custom tone (1-500 chars) |
-| `audience` | string | - | Target audience (1-500 chars) |
-| `language` | string | `en` | ISO language code (`fr`, `es`, etc.) |
-
-### cardOptions
-
-| Parameter | Type | Default | Values |
-|-----------|------|---------|--------|
-| `dimensions` | string | `fluid` | Presentations: `fluid`, `16x9`, `4x3`. Documents: `pageless`, `letter`, `a4`. Social: `1x1`, `4x5`, `9x16` |
-| `headerFooter` | object | - | Header/footer config with positions: `topLeft`, `topRight`, `topCenter`, `bottomLeft`, `bottomRight`, `bottomCenter` |
-
-### imageOptions
-
-| Parameter | Type | Default | Values |
-|-----------|------|---------|--------|
-| `source` | string | `aiGenerated` | `aiGenerated`, `pictographic`, `unsplash`, `giphy`, `webAllImages`, `webFreeToUse`, `webFreeToUseCommercially`, `placeholder`, `noImages` |
-| `model` | string | auto | AI model for generation (when source is `aiGenerated`) |
-| `style` | string | - | Artistic style (1-500 chars) |
-
-### sharingOptions
-
-| Parameter | Type | Default | Values |
-|-----------|------|---------|--------|
-| `workspaceAccess` | string | workspace default | `noAccess`, `view`, `comment`, `edit`, `fullAccess` |
-| `externalAccess` | string | workspace default | `noAccess`, `view`, `comment`, `edit` |
-| `emailOptions.recipients` | array | - | Email addresses for direct sharing |
-| `emailOptions.access` | string | - | `view`, `comment`, `edit`, `fullAccess` |
-
-### Text Modes Explained
-
-| Mode | Use Case |
-|------|----------|
-| `generate` | Brief input, let AI expand |
-| `condense` | Large input, summarize it |
-| `preserve` | Keep exact text as-is |
-
-### Slide Breaks
-
-When using `cardSplit: "inputTextBreaks"`, use `\n---\n` (three dashes on its own line) to separate slides.
-
-### Input Text Notes
-
-- Max length: 100,000 tokens (~400,000 characters)
-- Supports image URLs inline in text
-- Use `\n---\n` for card breaks when `cardSplit: "inputTextBreaks"`
-
-## Content Formatting Tips
-
-- Keep slides concise
-- Use bullet points for lists
-- Tables for structured data
-- Bold for emphasis on key metrics
-- Consistent heading hierarchy
-
-## Other Gamma APIs
-
-### Create from Template API (Beta)
+### Primary Endpoint: Create from Template
 
 **Endpoint:** `POST https://public-api.gamma.app/v1.0/generations/from-template`
 
-Create a new gamma based on an existing template.
+**Headers:**
+```
+X-API-KEY: {GAMMA_API_KEY}
+Content-Type: application/json
+```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `gammaId` | string | Yes | Template gamma ID to modify |
-| `prompt` | string | Yes | Instructions for content modification (max 100k tokens) |
-| `themeId` | string | No | Visual styling override |
-| `folderIds` | array | No | Storage folders |
-| `exportAs` | string | No | `pdf` or `pptx` |
-| `imageOptions` | object | No | `model`, `style` |
-| `sharingOptions` | object | No | Same as Generate API |
+**Request:**
+```json
+{
+  "gammaId": "g_9d4wnyvr02om4zk",
+  "prompt": "Your markdown content...",
+  "exportAs": "pptx"
+}
+```
 
-### List Themes API
+### Response (201 Created)
 
-**Endpoint:** `GET https://public-api.gamma.app/v1.0/themes`
+```json
+{
+  "generationId": "abc123"
+}
+```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search by name (case-insensitive) |
-| `limit` | integer | Items per page (max 50) |
-| `after` | string | Cursor for pagination |
+### Poll for Completion
 
-**Response:** `{ data: [{id, name, type, colorKeywords, toneKeywords}], hasMore, nextCursor }`
+**Endpoint:** `GET https://public-api.gamma.app/v1.0/generations/{generationId}`
 
-### List Folders API
+**Completed Response:**
+```json
+{
+  "generationId": "abc123",
+  "status": "completed",
+  "gammaUrl": "https://gamma.app/docs/xxx",
+  "exportUrl": "https://assets.api.gamma.app/export/pptx/xxx/Untitled.pptx",
+  "credits": {
+    "deducted": 32,
+    "remaining": 7875
+  }
+}
+```
 
-**Endpoint:** `GET https://public-api.gamma.app/v1.0/folders`
+### Other Endpoints
 
-Same parameters as List Themes. Returns `{ data: [{id, name}], hasMore, nextCursor }`
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1.0/generations` | POST | Generate from text (standard) |
+| `/v1.0/themes` | GET | List available themes |
+| `/v1.0/folders` | GET | List folders |
 
-## API Access & Pricing
+### API Access
 
 - Available on Pro, Ultra, Teams, Business plans
-- Credit-based billing system
-- v0.2 deprecated Jan 16, 2026 - use v1.0
-- Create from Template API is in beta
+- Credit-based billing
+- v0.2 deprecated Jan 16, 2026
 
-**Docs:** https://developers.gamma.app/docs/getting-started
+**Full docs:** https://developers.gamma.app/docs/getting-started

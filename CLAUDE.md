@@ -83,7 +83,8 @@ flash-report-custom-airsaas-poc/
 │   ├── MISSING_FIELDS.md        # API fields not available
 │   └── CLAUDE_ERRORS.md         # Errors log to avoid repeating
 └── scripts/
-    ├── generate_ppt.py          # Python script for PPT generation
+    ├── generate_ppt.py          # Python script for PPT generation (python-pptx)
+    ├── generate_ppt_gamma.py    # Python script for PPT generation (Gamma API)
     └── airsaas_fetcher.gs       # Google Apps Script reference
 ```
 
@@ -99,6 +100,7 @@ flash-report-custom-airsaas-poc/
 | `AIRSAAS_BASE_URL` | AirSaas API base URL | https://api.airsaas.io/v1 |
 | `GAMMA_API_KEY` | Gamma API key | sk-gamma-xxx |
 | `GAMMA_BASE_URL` | Gamma API base URL | https://public-api.gamma.app/v1.0 |
+| `GAMMA_TEMPLATE_ID` | Gamma template ID | g_9d4wnyvr02om4zk |
 
 ### projects.json Structure
 
@@ -346,7 +348,7 @@ On 429 error:
 
 **Documentation:** https://developers.gamma.app/docs/getting-started
 
-**Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
+**Template ID:** `g_9d4wnyvr02om4zk` (configured in `.env` as `GAMMA_TEMPLATE_ID`)
 
 ### Authentication
 
@@ -354,11 +356,38 @@ On 429 error:
 X-API-KEY: {GAMMA_API_KEY}
 ```
 
-### Creating a Presentation
+### Primary Method: Create from Template (Used by /ppt-gamma)
+
+**Endpoint:** `POST https://public-api.gamma.app/v1.0/generations/from-template`
 
 **Request:**
 ```json
-POST https://public-api.gamma.app/v1.0/generations
+{
+  "gammaId": "g_9d4wnyvr02om4zk",
+  "prompt": "Fill this presentation with project data: ...",
+  "exportAs": "pptx",
+  "imageOptions": {
+    "source": "noImages"
+  }
+}
+```
+
+### Key Parameters (from-template)
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `gammaId` | Yes | Template gamma ID (e.g., `g_9d4wnyvr02om4zk`) |
+| `prompt` | Yes | Instructions for content modification (max 100,000 tokens) |
+| `exportAs` | No | `pdf` or `pptx` for download |
+| `themeId` | No | Visual styling override |
+| `imageOptions` | No | Image generation settings |
+
+### Alternative Method: Standard Generation
+
+**Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
+
+**Request:**
+```json
 {
   "inputText": "Your markdown content here",
   "textMode": "preserve",
@@ -379,18 +408,7 @@ POST https://public-api.gamma.app/v1.0/generations
 }
 ```
 
-### Key Parameters
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `inputText` | Yes | Content to generate (max 100,000 tokens) |
-| `textMode` | Yes | `generate`, `condense`, or `preserve` |
-| `format` | No | `presentation`, `document`, `social`, `webpage` |
-| `numCards` | No | Number of slides (1-60 Pro, 1-75 Ultra) |
-| `cardSplit` | No | `auto` or `inputTextBreaks` (use `---` breaks) |
-| `exportAs` | No | `pdf` or `pptx` for download |
-
-### Text Modes
+### Text Modes (Standard Generation)
 
 | Mode | Use Case |
 |------|----------|
@@ -407,12 +425,12 @@ POST https://public-api.gamma.app/v1.0/generations
 | `imageOptions` | `source` (noImages, aiGenerated, unsplash...), `model`, `style` |
 | `sharingOptions` | `workspaceAccess`, `externalAccess`, `emailOptions` |
 
-### Other Gamma Endpoints
+### All Gamma Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/v1.0/generations` | POST | Generate from text |
-| `/v1.0/generations/from-template` | POST | Generate from template (Beta) |
+| `/v1.0/generations/from-template` | POST | **Generate from template (primary method)** |
 | `/v1.0/themes` | GET | List available themes |
 | `/v1.0/folders` | GET | List folders |
 
