@@ -5,8 +5,8 @@
  * Use as reference for API structure or standalone in Google Sheets.
  *
  * Features:
- * - Fetches: project, members, efforts, milestones, decisions, attention points, budget
- * - Fetches: all workspace references (moods, statuses, risks, teams, users)
+ * - Fetches: project, members, efforts, milestones, decisions, attention points
+ * - Fetches: all workspace references (moods, statuses, risks, teams, users, programs)
  * - Resolves codes to human-readable labels
  * - Exports to Google Sheets with formatted tabs
  *
@@ -30,19 +30,77 @@
  * Pagination:
  * - Default page_size: 10
  * - Maximum page_size: 20
+ *
+ * Available Endpoints:
+ * - /projects/ - List all projects
+ * - /projects/{id}/ - Single project (expand: owner, program, goals, teams, requesting_team)
+ * - /projects/{id}/members/ - Project team members with roles
+ * - /projects/{id}/efforts/ - Per-team effort breakdown
+ * - /milestones/?project={id} - Project milestones (expand: owner, team, project)
+ * - /decisions/?project={id} - Project decisions (expand: owner, decision_maker, project)
+ * - /attention_points/?project={id} - Project attention points (expand: owner, project)
+ * - /projects_moods/ - Mood definitions
+ * - /projects_statuses/ - Status definitions
+ * - /projects_risks/ - Risk definitions
+ * - /teams/ - All workspace teams
+ * - /users/ - Workspace members
+ * - /programs/ - Programs list
+ * - /project_custom_attributes/ - Custom attribute definitions
  */
 
-// Configuration
+// ============================================================================
+// CONFIGURATION - Edit these values or use Script Properties
+// ============================================================================
 const CONFIG = {
-  API_KEY: '', // Set via Script Properties or paste here
-  BASE_URL: 'https://api.airsaas.io/v1',
-  WORKSPACE: 'aqme-corp-',
-  PAGE_SIZE: 20 // Max allowed by API
+  // Authentication
+  API_KEY: '',                              // AirSaas API key (or set AIRSAAS_API_KEY in Script Properties)
+
+  // API Settings
+  BASE_URL: 'https://api.airsaas.io/v1',    // AirSaas API base URL
+  PAGE_SIZE: 20,                            // Max items per page (API max: 20)
+
+  // Workspace
+  WORKSPACE: 'aqme-corp-',                  // Your workspace slug
+
+  // Rate Limiting
+  RATE_LIMIT_RETRY_DEFAULT: 5,              // Default retry delay in seconds if Retry-After header missing
+
+  // Endpoints - Reference Data
+  ENDPOINTS: {
+    PROJECTS: '/projects/',                 // List/get projects
+    MILESTONES: '/milestones/',             // Project milestones
+    DECISIONS: '/decisions/',               // Project decisions
+    ATTENTION_POINTS: '/attention_points/', // Project attention points/risks
+    MOODS: '/projects_moods/',              // Mood definitions (blocked, complicated, issues, good)
+    STATUSES: '/projects_statuses/',        // Status definitions (idea, ongoing, paused, finished, canceled)
+    RISKS: '/projects_risks/',              // Risk definitions (low, medium, high)
+    TEAMS: '/teams/',                       // Workspace teams
+    USERS: '/users/',                       // Workspace members
+    PROGRAMS: '/programs/',                 // Programs list
+    CUSTOM_ATTRIBUTES: '/project_custom_attributes/' // Custom attribute definitions
+  },
+
+  // Expandable Fields (use with ?expand=field1,field2)
+  EXPAND: {
+    PROJECT: 'owner,program,goals,teams,requesting_team',
+    MILESTONE: 'owner,team,project',
+    DECISION: 'owner,decision_maker,project',
+    ATTENTION_POINT: 'owner,project'
+  }
 };
 
 /**
  * Main entry point - fetches reference data for the workspace
  * These are used to resolve codes (mood, status, risk) to labels
+ *
+ * Documented endpoints:
+ * - GET /projects_moods/ - Mood definitions (blocked, complicated, issues, good)
+ * - GET /projects_statuses/ - Status definitions (idea, ongoing, paused, finished, canceled)
+ * - GET /projects_risks/ - Risk definitions (low, medium, high)
+ * - GET /teams/ - All workspace teams
+ * - GET /users/ - Workspace members
+ * - GET /programs/ - Programs list
+ * - GET /project_custom_attributes/ - Custom attribute definitions
  */
 function fetchReferenceData() {
   const apiKey = CONFIG.API_KEY || PropertiesService.getScriptProperties().getProperty('AIRSAAS_API_KEY');
@@ -53,11 +111,13 @@ function fetchReferenceData() {
 
   // Fetch reference data (documented endpoints)
   const referenceData = {
-    moods: fetchAllPages('/projects_moods/', apiKey),
-    statuses: fetchAllPages('/projects_statuses/', apiKey),
-    risks: fetchAllPages('/projects_risks/', apiKey),
-    teams: fetchAllPages('/teams/', apiKey),
-    users: fetchAllPages('/users/', apiKey)
+    moods: fetchAllPages(CONFIG.ENDPOINTS.MOODS, apiKey),
+    statuses: fetchAllPages(CONFIG.ENDPOINTS.STATUSES, apiKey),
+    risks: fetchAllPages(CONFIG.ENDPOINTS.RISKS, apiKey),
+    teams: fetchAllPages(CONFIG.ENDPOINTS.TEAMS, apiKey),
+    users: fetchAllPages(CONFIG.ENDPOINTS.USERS, apiKey),
+    programs: fetchAllPages(CONFIG.ENDPOINTS.PROGRAMS, apiKey),
+    customAttributes: fetchAllPages(CONFIG.ENDPOINTS.CUSTOM_ATTRIBUTES, apiKey)
   };
 
   Logger.log('Reference data loaded');
@@ -66,6 +126,8 @@ function fetchReferenceData() {
   Logger.log('Risks: ' + referenceData.risks.length);
   Logger.log('Teams: ' + referenceData.teams.length);
   Logger.log('Users: ' + referenceData.users.length);
+  Logger.log('Programs: ' + referenceData.programs.length);
+  Logger.log('Custom Attributes: ' + referenceData.customAttributes.length);
 
   return referenceData;
 }
@@ -77,11 +139,13 @@ function fetchReferenceData() {
  * - GET /projects/{id}/?expand=owner,program,goals,teams,requesting_team
  * - GET /projects/{id}/members/ - Project team members with roles
  * - GET /projects/{id}/efforts/ - Per-team effort breakdown
- * - GET /projects/{id}/budget_lines/ - Budget line items
- * - GET /projects/{id}/budget_values/ - Budget values per line
  * - GET /milestones/?project={id}&expand=owner,team,project
  * - GET /decisions/?project={id}&expand=owner,decision_maker,project
  * - GET /attention_points/?project={id}&expand=owner,project
+ *
+ * Undocumented endpoints (may not be available):
+ * - GET /projects/{id}/budget_lines/ - Budget line items
+ * - GET /projects/{id}/budget_values/ - Budget values per line
  *
  * @param {string} projectId - UUID of the project
  * @param {string} apiKey - API key for authentication
@@ -95,29 +159,29 @@ function fetchProjectData(projectId, apiKey, referenceData) {
 
   // Main project info with all expandable fields
   data.project = fetchJson(
-    `/projects/${projectId}/?expand=owner,program,goals,teams,requesting_team`,
+    `${CONFIG.ENDPOINTS.PROJECTS}${projectId}/?expand=${CONFIG.EXPAND.PROJECT}`,
     apiKey
   );
 
   // Project sub-resources
-  data.members = fetchAllPages(`/projects/${projectId}/members/`, apiKey);
-  data.efforts = fetchAllPages(`/projects/${projectId}/efforts/`, apiKey);
+  data.members = fetchAllPages(`${CONFIG.ENDPOINTS.PROJECTS}${projectId}/members/`, apiKey);
+  data.efforts = fetchAllPages(`${CONFIG.ENDPOINTS.PROJECTS}${projectId}/efforts/`, apiKey);
 
-  // Budget data
+  // Budget data (undocumented endpoints - may not be available)
   try {
-    data.budgetLines = fetchAllPages(`/projects/${projectId}/budget_lines/`, apiKey);
-    data.budgetValues = fetchAllPages(`/projects/${projectId}/budget_values/`, apiKey);
+    data.budgetLines = fetchAllPages(`${CONFIG.ENDPOINTS.PROJECTS}${projectId}/budget_lines/`, apiKey);
+    data.budgetValues = fetchAllPages(`${CONFIG.ENDPOINTS.PROJECTS}${projectId}/budget_values/`, apiKey);
   } catch (e) {
-    // Budget endpoints may not be available for all projects
-    Logger.log('Budget data not available: ' + e.message);
+    // Budget endpoints are undocumented and may not exist for all workspaces
+    Logger.log('Budget endpoints not available (undocumented API): ' + e.message);
     data.budgetLines = [];
     data.budgetValues = [];
   }
 
   // Related data - using documented endpoints with project filter
-  data.milestones = fetchAllPages(`/milestones/?project=${projectId}&expand=owner,team,project`, apiKey);
-  data.decisions = fetchAllPages(`/decisions/?project=${projectId}&expand=owner,decision_maker,project`, apiKey);
-  data.attentionPoints = fetchAllPages(`/attention_points/?project=${projectId}&expand=owner,project`, apiKey);
+  data.milestones = fetchAllPages(`${CONFIG.ENDPOINTS.MILESTONES}?project=${projectId}&expand=${CONFIG.EXPAND.MILESTONE}`, apiKey);
+  data.decisions = fetchAllPages(`${CONFIG.ENDPOINTS.DECISIONS}?project=${projectId}&expand=${CONFIG.EXPAND.DECISION}`, apiKey);
+  data.attentionPoints = fetchAllPages(`${CONFIG.ENDPOINTS.ATTENTION_POINTS}?project=${projectId}&expand=${CONFIG.EXPAND.ATTENTION_POINT}`, apiKey);
 
   // Resolve codes to labels
   if (referenceData) {
@@ -161,7 +225,7 @@ function fetchJson(endpoint, apiKey) {
 
   if (code === 429) {
     // Rate limited - check Retry-After header
-    const retryAfter = response.getHeaders()['Retry-After'] || 5;
+    const retryAfter = response.getHeaders()['Retry-After'] || CONFIG.RATE_LIMIT_RETRY_DEFAULT;
     Logger.log('Rate limited. Retry after ' + retryAfter + ' seconds');
     Utilities.sleep(retryAfter * 1000);
     return fetchJson(endpoint, apiKey); // Retry
@@ -262,7 +326,7 @@ function exportToSheet(projectData) {
     ['Status', projectData.resolved?.status || projectData.project.status],
     ['Mood', projectData.resolved?.mood || projectData.project.mood],
     ['Risk', projectData.resolved?.risk || projectData.project.risk],
-    ['Owner', projectData.project.owner?.full_name || ''],
+    ['Owner', projectData.project.owner?.full_name || projectData.project.owner?.name || ''],
     ['Program', projectData.project.program?.name || ''],
     ['Start Date', projectData.project.start_date],
     ['End Date', projectData.project.end_date],
@@ -331,7 +395,7 @@ function exportToSheet(projectData) {
       sheet.getRange(row, 1, 1, 4).setValues([[
         d.title || '',
         d.status || '',
-        d.decision_maker?.full_name || '',
+        d.decision_maker?.full_name || d.decision_maker?.name || '',
         d.created_at || ''
       ]]);
       row++;
@@ -351,7 +415,7 @@ function exportToSheet(projectData) {
         ap.title || '',
         ap.severity || '',
         ap.status || '',
-        ap.owner?.full_name || ''
+        ap.owner?.full_name || ap.owner?.name || ''
       ]]);
       row++;
     });
@@ -449,7 +513,7 @@ function fetchAllProjects() {
     throw new Error('API key not configured.');
   }
 
-  const projects = fetchAllPages('/projects/?expand=owner,program', apiKey);
+  const projects = fetchAllPages(`${CONFIG.ENDPOINTS.PROJECTS}?expand=owner,program`, apiKey);
   Logger.log('Found ' + projects.length + ' projects');
 
   // Log project list

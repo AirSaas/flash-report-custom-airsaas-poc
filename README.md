@@ -8,29 +8,40 @@ Automates the generation of PowerPoint portfolio reports from AirSaas project da
 flowchart LR
     subgraph Input
         A[config/projects.json] --> B[Project IDs]
-        C[templates/*.pptx] --> D[PPT Template]
+        C[templates/ProjectCardAndFollowUp.pptx] --> D[PPT Template]
+        E[config/mapping.json] --> F[Field Mapping]
     end
 
-    subgraph Fetch
-        B --> E[AirSaas API]
-        E --> F[/projects/]
-        E --> G[/milestones/]
-        E --> H[/decisions/]
-        E --> I[/attention_points/]
-        F & G & H & I --> J[data/projects.json]
+    subgraph Fetch["/fetch"]
+        B --> G[AirSaas API]
+        G --> H[Reference Data]
+        H --> H1[/moods/]
+        H --> H2[/statuses/]
+        H --> H3[/risks/]
+        G --> I[Project Data]
+        I --> I1[/projects/]
+        I --> I2[/members/]
+        I --> I3[/efforts/]
+        I --> I4[/milestones/]
+        I --> I5[/decisions/]
+        I --> I6[/attention_points/]
+        H1 & H2 & H3 & I1 & I2 & I3 & I4 & I5 & I6 --> J[data/YYYY-MM-DD_projects.json]
     end
 
     subgraph Generate
         J --> K{Generator}
         D --> K
-        K -->|python-pptx| L[Programmatic]
-        K -->|Gamma API| M[AI-Powered]
-        L & M --> N[outputs/*.pptx]
+        F --> K
+        K -->|/ppt-skill| L[python-pptx]
+        K -->|/ppt-gamma| M[Gamma API]
+        L --> N[outputs/YYYY-MM-DD_portfolio_skill.pptx]
+        M --> O[outputs/YYYY-MM-DD_portfolio_gamma.pptx]
     end
 
-    style E fill:#4A90D9
+    style G fill:#4A90D9
     style K fill:#F5A623
     style N fill:#7ED321
+    style O fill:#7ED321
 ```
 
 ```mermaid
@@ -38,22 +49,65 @@ sequenceDiagram
     participant U as User
     participant C as Claude Code
     participant A as AirSaas API
-    participant P as PPT Generator
+    participant P as python-pptx
+    participant G as Gamma API
 
+    rect rgb(230, 245, 255)
+    Note over U,A: /fetch - Data Collection
     U->>C: /fetch
-    C->>A: GET /projects/{id}
-    A-->>C: Project data
-    C->>A: GET /milestones/?project={id}
-    A-->>C: Milestones
-    C->>A: GET /decisions/?project={id}
-    A-->>C: Decisions
-    C-->>U: Data saved to data/
+    C->>A: GET /projects_moods/, /projects_statuses/, /projects_risks/
+    A-->>C: Reference data (labels)
+    loop For each project in projects.json
+        C->>A: GET /projects/{id}/?expand=owner,program,goals,teams
+        A-->>C: Project info
+        C->>A: GET /projects/{id}/members/
+        A-->>C: Team members
+        C->>A: GET /projects/{id}/efforts/
+        A-->>C: Team efforts
+        C->>A: GET /milestones/?project={id}
+        A-->>C: Milestones
+        C->>A: GET /decisions/?project={id}
+        A-->>C: Decisions
+        C->>A: GET /attention_points/?project={id}
+        A-->>C: Attention points
+    end
+    C-->>U: Saved to data/YYYY-MM-DD_projects.json
+    end
 
+    rect rgb(255, 245, 230)
+    Note over U,P: /ppt-skill - Template Generation
     U->>C: /ppt-skill
-    C->>P: Load template + data
-    P->>P: Map fields to shapes
-    P-->>C: Generated PPTX
-    C-->>U: Output saved to outputs/
+    C->>P: Load template
+    P->>P: Verify template (check shape positions)
+    alt Template OK
+        P->>P: Load data + mapping
+        P->>P: Create Summary slide
+        loop For each project
+            P->>P: Duplicate template slide
+            P->>P: Map fields to shapes
+        end
+        P->>P: Create Data Notes slide
+        P-->>C: Generated PPTX
+        C-->>U: outputs/YYYY-MM-DD_portfolio_skill.pptx
+    else Template changed
+        P-->>C: Warning: run /mapping
+        C-->>U: Template verification failed
+    end
+    end
+
+    rect rgb(245, 255, 230)
+    Note over U,G: /ppt-gamma - AI Generation
+    U->>C: /ppt-gamma
+    C->>G: POST /generations/from-template
+    G-->>C: generationId
+    loop Poll until completed
+        C->>G: GET /generations/{id}
+        G-->>C: status: pending/completed
+    end
+    C->>G: Download PPTX from exportUrl
+    G-->>C: PPTX file
+    C-->>U: outputs/YYYY-MM-DD_portfolio_gamma.pptx
+    end
 ```
 
 ## Features
@@ -92,18 +146,19 @@ Generated presentations follow this structure (per spec section 5.1):
    ```bash
    cp .env.example .env
    ```
-4. Place your PPT template in `templates/` folder
+4. Place your PPT template as `templates/ProjectCardAndFollowUp.pptx`
 
 ## Configuration
 
 ### Environment Variables (.env)
 
-| Variable | Description |
-|----------|-------------|
-| `AIRSAAS_API_KEY` | Your AirSaas API key |
-| `AIRSAAS_BASE_URL` | API base URL (default: https://api.airsaas.io/v1) |
-| `GAMMA_API_KEY` | Gamma API key (optional) |
-| `GAMMA_BASE_URL` | Gamma API URL (default: https://public-api.gamma.app/v1.0) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AIRSAAS_API_KEY` | Yes | Your AirSaas API key |
+| `AIRSAAS_BASE_URL` | No | API base URL (default: https://api.airsaas.io/v1) |
+| `GAMMA_API_KEY` | No | Gamma API key (for /ppt-gamma command) |
+| `GAMMA_BASE_URL` | No | Gamma API URL (default: https://public-api.gamma.app/v1.0) |
+| `GAMMA_TEMPLATE_ID` | No | Gamma template ID (default: g_9d4wnyvr02om4zk) |
 
 ### Project Configuration (config/projects.json)
 
@@ -250,9 +305,10 @@ flash-report-custom-airsaas-poc/
 ├── .env.example                 # Credentials template
 ├── config/
 │   ├── projects.json            # Projects to export
-│   └── mapping.json             # Field mapping configuration
+│   ├── mapping.json             # Field mapping configuration
+│   └── template_shapes.json     # Template shape positions cache
 ├── templates/
-│   └── *.pptx                   # PPT templates
+│   └── ProjectCardAndFollowUp.pptx  # PPT template
 ├── data/
 │   └── {date}_projects.json     # Fetched data cache
 ├── outputs/
@@ -261,7 +317,8 @@ flash-report-custom-airsaas-poc/
 │   ├── MISSING_FIELDS.md        # API fields not available
 │   └── CLAUDE_ERRORS.md         # Error log
 ├── scripts/
-│   ├── generate_ppt.py          # Python PPT generator
+│   ├── generate_ppt.py          # Python PPT generator (python-pptx)
+│   ├── generate_ppt_gamma.py    # Python PPT generator (Gamma API)
 │   └── airsaas_fetcher.gs       # Google Apps Script reference
 └── .claude/commands/            # Slash command definitions
 ```
@@ -333,9 +390,17 @@ These fields are not available in the public API:
 ### Gamma API (Optional)
 
 - **Documentation:** https://developers.gamma.app/docs/getting-started
-- **Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
+- **Primary Endpoint:** `POST https://public-api.gamma.app/v1.0/generations/from-template`
+- **Standard Endpoint:** `POST https://public-api.gamma.app/v1.0/generations`
 - **Authentication:** `X-API-KEY: {GAMMA_API_KEY}`
 - **Access:** Pro, Ultra, Teams, or Business plan required
+
+#### Manual Gamma Generation
+
+```bash
+# Run the Gamma generator directly
+python3 scripts/generate_ppt_gamma.py
+```
 
 ## License
 
