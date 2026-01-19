@@ -78,7 +78,11 @@ flash-report-custom-airsaas-poc/
 ├── data/
 │   └── {date}_projects.json     # Fetched data cache
 ├── outputs/
-│   └── {date}_portfolio_*.pptx  # Generated presentations
+│   ├── {date}_portfolio_skill.pptx  # Generated via python-pptx
+│   ├── {date}_portfolio_gamma.pptx  # Generated via Gamma API
+│   ├── gamma_prompt.md              # Prompt sent to Gamma (debug/audit)
+│   ├── gamma_generation.json        # Initial response with generationId
+│   └── gamma_result.json            # Final response (URLs, credits)
 ├── tracking/
 │   ├── MISSING_FIELDS.md        # API fields not available
 │   └── CLAUDE_ERRORS.md         # Errors log to avoid repeating

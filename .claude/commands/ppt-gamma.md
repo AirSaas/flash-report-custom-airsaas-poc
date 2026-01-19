@@ -20,8 +20,14 @@ Environment variables in `.env`:
 
 ## Output
 
-- **File**: `outputs/{date}_portfolio_gamma.pptx`
-- **Online**: Link to Gamma app for editing
+| File | Description |
+|------|-------------|
+| `outputs/{date}_portfolio_gamma.pptx` | Generated PowerPoint presentation |
+| `outputs/gamma_prompt.md` | Prompt sent to Gamma API (for debugging/audit) |
+| `outputs/gamma_generation.json` | Initial API response with `generationId` (for resuming if interrupted) |
+| `outputs/gamma_result.json` | Final API response with URLs, credits, and Gamma edit link |
+
+**Online editing:** The `gammaUrl` in `gamma_result.json` links to the Gamma app for online editing.
 
 ---
 

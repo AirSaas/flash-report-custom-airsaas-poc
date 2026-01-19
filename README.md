@@ -240,6 +240,11 @@ Generated presentations are saved in `outputs/` with date prefix:
 - `outputs/2026-01-12_portfolio_skill.pptx` (python-pptx)
 - `outputs/2026-01-12_portfolio_gamma.pptx` (Gamma API, if configured)
 
+Gamma API also generates debug/audit files:
+- `outputs/gamma_prompt.md` - The prompt sent to Gamma API
+- `outputs/gamma_generation.json` - Initial response with `generationId` (for resuming)
+- `outputs/gamma_result.json` - Final response with Gamma URL and credits info
+
 ### Complete Workflow Example
 
 ```bash
@@ -312,7 +317,11 @@ flash-report-custom-airsaas-poc/
 ├── data/
 │   └── {date}_projects.json     # Fetched data cache
 ├── outputs/
-│   └── {date}_portfolio_*.pptx  # Generated presentations
+│   ├── {date}_portfolio_skill.pptx  # Generated via python-pptx
+│   ├── {date}_portfolio_gamma.pptx  # Generated via Gamma API
+│   ├── gamma_prompt.md              # Prompt sent to Gamma (debug)
+│   ├── gamma_generation.json        # Initial response (generationId)
+│   └── gamma_result.json            # Final response (URLs, credits)
 ├── tracking/
 │   ├── MISSING_FIELDS.md        # API fields not available
 │   └── CLAUDE_ERRORS.md         # Error log
